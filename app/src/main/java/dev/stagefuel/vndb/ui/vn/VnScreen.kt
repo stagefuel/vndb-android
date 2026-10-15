@@ -1,0 +1,306 @@
+package dev.stagefuel.vndb.ui.vn
+
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import dev.stagefuel.vndb.VndbApp
+import dev.stagefuel.vndb.api.Character
+import dev.stagefuel.vndb.api.Image
+import dev.stagefuel.vndb.api.Release
+import dev.stagefuel.vndb.api.Vn
+import dev.stagefuel.vndb.data.Prefs
+import dev.stagefuel.vndb.ui.Nav
+import dev.stagefuel.vndb.ui.common.BbText
+import dev.stagefuel.vndb.ui.common.BoxTitle
+import dev.stagefuel.vndb.ui.common.GatedImage
+import dev.stagefuel.vndb.ui.common.Grey
+import dev.stagefuel.vndb.ui.common.InfoRow
+import dev.stagefuel.vndb.ui.common.LinkText
+import dev.stagefuel.vndb.ui.common.Loading
+import dev.stagefuel.vndb.ui.common.Names
+import dev.stagefuel.vndb.ui.common.SectionHeader
+import dev.stagefuel.vndb.ui.common.VndbBox
+import dev.stagefuel.vndb.ui.common.VndbTabs
+import dev.stagefuel.vndb.ui.common.WarningBox
+import dev.stagefuel.vndb.ui.common.formatRating
+import dev.stagefuel.vndb.ui.list.ListEditSheet
+import dev.stagefuel.vndb.ui.theme.LocalSkin
+import dev.stagefuel.vndb.ui.theme.VndbType
+
+private val TABS = listOf("main", "tags", "releases", "characters", "staff")
+
+@Composable
+fun VnScreen(app: VndbApp, prefs: Prefs, nav: Nav, id: String) {
+  val vm = viewModel(key = "vn-$id") { VnVm(app.repo, id) }
+  var tab by rememberSaveable { mutableIntStateOf(0) }
+  var editing by rememberSaveable { mutableStateOf(false) }
+
+  when (val st = vm.vn) {
+    Load.Idle, Load.Loading -> Loading()
+    is Load.Failed -> WarningBox(st.message) { vm.loadVn() }
+    is Load.Done -> {
+      val v = st.value
+      LaunchedEffect(tab) {
+        when (TABS[tab]) {
+          "releases" -> vm.loadReleases()
+          "characters" -> vm.loadCharacters()
+        }
+      }
+      LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 16.dp)) {
+        item {
+          Column(Modifier.padding(horizontal = 10.dp, vertical = 10.dp)) {
+            BoxTitle(v.title, v.alttitle)
+          }
+          VndbTabs(TABS, tab) { tab = it }
+        }
+        when (TABS[tab]) {
+          "main" -> mainTab(v, prefs, nav, signedIn = prefs.account != null, onEdit = { editing = true })
+          "tags" -> item { TagsTab(v, prefs, nav) }
+          "releases" -> releasesTab(vm.releases, nav) { vm.loadReleases(force = true) }
+          "characters" -> charactersTab(v.id, vm.characters, prefs, nav) { vm.loadCharacters(force = true) }
+          "staff" -> staffTab(v, nav)
+        }
+      }
+      if (editing) ListEditSheet(app, vnId = v.id, title = v.title, onDismiss = { editing = false })
+    }
+  }
+}
+
+private fun LazyListScope.mainTab(v: Vn, prefs: Prefs, nav: Nav, signedIn: Boolean, onEdit: () -> Unit) {
+  item {
+    VndbBox(Modifier.padding(horizontal = 6.dp)) {
+      Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+        GatedImage(v.image, prefs, Modifier.widthIn(max = 250.dp).height(320.dp))
+      }
+      Spacer(Modifier.height(8.dp))
+      InfoTable(v, nav)
+      Spacer(Modifier.height(8.dp))
+      Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        if (signedIn) LinkText("edit list entry") { onEdit() }
+        LinkText("open on vndb.org") { nav.web("https://vndb.org/${v.id}") }
+      }
+      if (!v.description.isNullOrBlank()) {
+        SectionHeader("Description")
+        BbText(v.description, onLink = nav::open, showSpoilers = prefs.spoilers >= 2)
+      }
+    }
+  }
+  val shots = v.screenshots.filter { s -> s.release?.languages.orEmpty().any { it.lang == v.olang } }.ifEmpty { v.screenshots }
+  if (shots.isNotEmpty()) item {
+    SectionHeader("Screenshots", Modifier.padding(horizontal = 8.dp))
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp)) {
+      items(shots, key = { it.url }) { s ->
+        val img = Image(url = s.url, sexual = s.sexual, violence = s.violence, thumbnail = s.thumbnail)
+        GatedImage(img, prefs, Modifier.size(200.dp, 150.dp).clickable { nav.open(s.url) }, thumb = true)
+      }
+    }
+  }
+  if (v.relations.isNotEmpty()) item {
+    Column(Modifier.padding(horizontal = 8.dp)) {
+      SectionHeader("Relations")
+      v.relations.groupBy { it.relation }.toSortedMap(compareBy { Names.relationOrder.indexOf(it) }).forEach { (rel, list) ->
+        Text(Names.relations[rel] ?: rel, style = VndbType.body, color = LocalSkin.current.mainText, modifier = Modifier.padding(top = 4.dp))
+        list.forEach { r ->
+          Row(Modifier.padding(start = 12.dp)) {
+            if (!r.official) Grey("[unofficial] ")
+            LinkText(r.title) { nav.vn(r.id) }
+          }
+        }
+      }
+    }
+  }
+}
+
+@Composable
+private fun InfoTable(v: Vn, nav: Nav) {
+  val skin = LocalSkin.current
+  var odd = true
+  @Composable fun row(key: String, content: @Composable () -> Unit) { InfoRow(key, odd, value = content); odd = !odd }
+  @Composable fun text(s: String) = Text(s, style = VndbType.body, color = skin.mainText)
+
+  val main = v.titles.firstOrNull { it.main }
+  if (main != null && main.title != v.title) row("Original title") { text(main.title) }
+  if (v.aliases.isNotEmpty()) row("Aliases") { text(v.aliases.joinToString(", ")) }
+  row("Status") { text(Names.devstatus[v.devstatus] ?: "") }
+  if (v.released != null) row("Released") { text(v.released) }
+  val len = v.lengthMinutes?.let { "${Names.minutes(it)} (${v.lengthVotes ?: 0} votes)" } ?: v.length?.let { Names.lengths[it] }
+  if (len != null) row("Play time") { text(len) }
+  if (v.developers.isNotEmpty()) row("Developer") {
+    Column { v.developers.forEach { d -> LinkText(d.name) { nav.item(d.id) } } }
+  }
+  if (v.languages.isNotEmpty()) row("Languages") { text(v.languages.joinToString(", ") { Names.lang(it) }) }
+  if (v.platforms.isNotEmpty()) row("Platforms") { text(v.platforms.joinToString(", ") { Names.platform(it) }) }
+  if (v.rating != null) row("Rating") {
+    Text("${formatRating(v.rating)} weighted, ${formatRating(v.average)} average (${v.votecount} votes)", style = VndbType.body, color = skin.mainText)
+  }
+  if (v.extlinks.isNotEmpty()) row("Links") {
+    @OptIn(ExperimentalLayoutApi::class)
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { v.extlinks.forEach { l -> LinkText(l.label) { nav.open(l.url) } } }
+  }
+}
+
+/** `div#vntags`: tags sized by rating, spoiler level picker, summary vs all, category filter. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun TagsTab(v: Vn, prefs: Prefs, nav: Nav) {
+  val skin = LocalSkin.current
+  var spoil by rememberSaveable { mutableIntStateOf(prefs.spoilers) }
+  var all by rememberSaveable { mutableStateOf(false) }
+  var cats by rememberSaveable { mutableStateOf(setOf("cont", "tech") + if (prefs.maxSexual >= 1) setOf("ero") else emptySet()) }
+
+  Column(Modifier.padding(8.dp)) {
+    @Composable fun opt(label: String, on: Boolean, click: () -> Unit) =
+      Text(label, style = VndbType.small, color = if (on) skin.mainText else skin.link, modifier = Modifier.clickable(onClick = click).padding(4.dp))
+    FlowRow(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
+      Names.tagCats.forEach { (k, label) -> opt(label, k in cats) { cats = if (k in cats) cats - k else cats + k } }
+      Text(" | ", style = VndbType.small, color = skin.grayedOut, modifier = Modifier.padding(vertical = 4.dp))
+      listOf("hide spoilers", "show minor spoilers", "spoil me!").forEachIndexed { i, l -> opt(l, spoil == i) { spoil = i } }
+      Text(" | ", style = VndbType.small, color = skin.grayedOut, modifier = Modifier.padding(vertical = 4.dp))
+      opt("summary", !all) { all = false }
+      opt("all", all) { all = true }
+    }
+    val shown = v.tags
+      .filter { it.category in cats && it.spoiler <= spoil && it.rating > 0 }
+      .sortedByDescending { it.rating }
+      .let { list -> if (all) list else list.groupBy { it.category }.values.flatMap { it.take(15) }.sortedByDescending { it.rating } }
+    Spacer(Modifier.height(6.dp))
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+      shown.forEach { t ->
+        Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.clickable { nav.item(t.id) }) {
+          Text(
+            t.name,
+            color = skin.link,
+            fontSize = (t.rating * 3.5 + 6).coerceAtLeast(10.0).sp,
+            textDecoration = if (t.lie) TextDecoration.LineThrough else null,
+          )
+          if (t.spoiler > 0) Text("S", fontSize = 9.sp, color = if (t.spoiler == 2) skin.standout else skin.grayedOut)
+          Text(" %.1f".format(t.rating), fontSize = 10.sp, color = skin.grayedOut)
+        }
+      }
+    }
+    if (shown.isEmpty()) Grey("No tags to show.", style = VndbType.body)
+  }
+}
+
+private fun LazyListScope.releasesTab(st: Load<List<Release>>, nav: Nav, retry: () -> Unit) {
+  when (st) {
+    Load.Idle, Load.Loading -> item { Loading() }
+    is Load.Failed -> item { WarningBox(st.message, retry) }
+    is Load.Done -> {
+      if (st.value.isEmpty()) item { Grey("No releases.", Modifier.padding(12.dp), VndbType.body) }
+      // One group per language, like the site's <details> per language.
+      val byLang = st.value.flatMap { r -> r.languages.map { it.lang to r } }.groupBy({ it.first }, { it.second })
+      byLang.forEach { (lang, rels) ->
+        item(key = "lang-$lang") {
+          val skin = LocalSkin.current
+          Text(
+            "${Names.lang(lang)} (${rels.size})",
+            style = VndbType.body.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold),
+            color = skin.mainText,
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp).border(1.dp, skin.border).padding(6.dp),
+          )
+        }
+        items(rels, key = { "$lang-${it.id}" }) { r -> ReleaseRow(r, lang, nav) }
+      }
+    }
+  }
+}
+
+@Composable
+private fun ReleaseRow(r: Release, lang: String, nav: Nav) {
+  val skin = LocalSkin.current
+  val mtl = r.languages.firstOrNull { it.lang == lang }?.mtl == true
+  Row(Modifier.fillMaxWidth().clickable { nav.item(r.id) }.padding(horizontal = 10.dp, vertical = 4.dp)) {
+    Grey(r.released ?: "TBA", Modifier.width(84.dp), VndbType.small)
+    Grey(r.minage?.let { "$it+" } ?: "", Modifier.width(30.dp), VndbType.small)
+    Column(Modifier.weight(1f)) {
+      Text(r.title, style = VndbType.body, color = if (mtl) skin.grayedOut else skin.link)
+      val flags = buildList {
+        if (r.platforms.isNotEmpty()) add(r.platforms.joinToString(", ") { Names.platform(it) })
+        r.vns.firstOrNull()?.rtype?.let { Names.rtypes[it] }?.takeIf { it.isNotEmpty() }?.let(::add)
+        if (r.patch) add("patch")
+        if (r.freeware) add("freeware")
+        if (!r.official) add("unofficial")
+        if (mtl) add("machine translation")
+        r.voiced?.let { Names.voiced[it] }?.let(::add)
+      }
+      if (flags.isNotEmpty()) Grey(flags.joinToString(" · "))
+    }
+  }
+}
+
+private fun LazyListScope.charactersTab(vnId: String, st: Load<List<Character>>, prefs: Prefs, nav: Nav, retry: () -> Unit) {
+  when (st) {
+    Load.Idle, Load.Loading -> item { Loading() }
+    is Load.Failed -> item { WarningBox(st.message, retry) }
+    is Load.Done -> {
+      val entries = st.value.mapNotNull { c -> c.vns.firstOrNull { it.id == vnId }?.let { c to it } }
+        .filter { (_, cv) -> cv.spoiler <= prefs.spoilers }
+      if (entries.isEmpty()) item { Grey("No characters to show.", Modifier.padding(12.dp), VndbType.body) }
+      Names.charRoleOrder.forEach { role ->
+        val list = entries.filter { it.second.role == role }
+        if (list.isNotEmpty()) {
+          item(key = "role-$role") { SectionHeader(Names.charRoles[role] ?: role, Modifier.padding(horizontal = 8.dp)) }
+          items(list, key = { it.first.id }) { (c, _) ->
+            Row(Modifier.fillMaxWidth().clickable { nav.item(c.id) }.padding(horizontal = 8.dp, vertical = 4.dp)) {
+              GatedImage(c.image, prefs, Modifier.size(56.dp, 72.dp), contentScale = ContentScale.Crop)
+              Spacer(Modifier.width(8.dp))
+              Column {
+                Text(c.name, style = VndbType.body, color = LocalSkin.current.link)
+                c.original?.let { Grey(it) }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+private fun LazyListScope.staffTab(v: Vn, nav: Nav) {
+  if (v.staff.isEmpty()) item { Grey("No staff listed.", Modifier.padding(12.dp), VndbType.body) }
+  v.staff.groupBy { it.role }.toSortedMap(compareBy { Names.staffRoleOrder.indexOf(it).let { i -> if (i < 0) 99 else i } }).forEach { (role, list) ->
+    item(key = "staff-$role") {
+      Column(Modifier.padding(horizontal = 8.dp)) {
+        SectionHeader(Names.staffRoles[role] ?: role)
+        list.forEach { s ->
+          Row(Modifier.padding(vertical = 2.dp)) {
+            LinkText(s.name) { nav.item(s.id) }
+            s.note?.takeIf { it.isNotBlank() }?.let { Grey("  $it") }
+          }
+        }
+      }
+    }
+  }
+}

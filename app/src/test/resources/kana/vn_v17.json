@@ -1,0 +1,12 @@
+{"more":false,"results":[{"id":"v17","title":"Ever17 -the out of infinity-","alttitle":"Ever17 -the out of infinity-",
+"titles":[{"lang":"ja","title":"Ever17 -the out of infinity-","latin":null,"official":true,"main":true}],
+"aliases":["E17"],"olang":"ja","devstatus":0,"released":"2002-08-29","languages":["ja","en","zh-Hans"],"platforms":["win","ps2"],
+"image":{"url":"https://t.vndb.org/cv/x.jpg","dims":[256,350],"sexual":0,"violence":0,"thumbnail":"https://t.vndb.org/cv.t/x.jpg","thumbnail_dims":[187,256]},
+"length":4,"length_minutes":2400,"length_votes":900,"description":"A [b]mystery[/b] [spoiler]twist[/spoiler]",
+"rating":87.2,"average":86.9,"votecount":12000,
+"developers":[{"id":"p24","name":"KID","original":null}],
+"tags":[{"id":"g1","name":"Mystery","rating":2.8,"spoiler":0,"lie":false,"category":"cont"},{"id":"g2","name":"Twist","rating":2.1,"spoiler":2,"lie":false,"category":"cont"}],
+"relations":[{"id":"v18","relation":"seq","relation_official":true,"title":"Remember11","alttitle":null,"released":"2004-03-18"}],
+"screenshots":[{"url":"https://t.vndb.org/sf/1.jpg","dims":[800,600],"sexual":1.0,"violence":0,"thumbnail":"https://t.vndb.org/st/1.jpg","thumbnail_dims":[136,102],"release":{"id":"r1","languages":[{"lang":"ja"}]}}],
+"staff":[{"id":"s1","name":"Kotaro Uchikoshi","original":"打越鋼太郎","role":"scenario","note":null}],
+"extlinks":[{"url":"https://en.wikipedia.org/wiki/Ever17","label":"Wikipedia (en)","name":"wikipedia"}]}]}

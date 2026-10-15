@@ -1,0 +1,55 @@
+name: Build and release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platforms;android-37.0 build-tools;37.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Tests
+        run: ./gradlew --no-daemon testDebugUnitTest
+      - name: Release keystore
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          KS: ${{ secrets.VNDB_KEYSTORE_B64 }}
+        run: |
+          test -n "$KS" || { echo "::error::Set the VNDB_KEYSTORE_B64, VNDB_KEYSTORE_PASSWORD, VNDB_KEY_ALIAS and VNDB_KEY_PASSWORD secrets before tagging."; exit 1; }
+          echo "$KS" | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "VNDB_KEYSTORE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+      - name: Build APK
+        env:
+          VNDB_KEYSTORE_PASSWORD: ${{ secrets.VNDB_KEYSTORE_PASSWORD }}
+          VNDB_KEY_ALIAS: ${{ secrets.VNDB_KEY_ALIAS }}
+          VNDB_KEY_PASSWORD: ${{ secrets.VNDB_KEY_PASSWORD }}
+        run: |
+          ./gradlew --no-daemon assembleRelease
+          mkdir -p out && cp app/build/outputs/apk/release/*.apk "out/vndb-${GITHUB_REF_NAME#v}.apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vndb-apk
+          path: out/*.apk
+          if-no-files-found: error
+      - name: Publish release (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          awk -v v="## ${GITHUB_REF_NAME#v}" '$0==v{p=1;next} /^## /{p=0} p' CHANGELOG.md > notes.md || true
+          gh release create "$GITHUB_REF_NAME" out/*.apk --title "$GITHUB_REF_NAME" --notes-file notes.md
