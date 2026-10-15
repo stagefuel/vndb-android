@@ -6,6 +6,7 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -94,5 +95,23 @@ class ScreenshotTest {
     rule.onNodeWithText("Me").performClick()
     rule.waitUntilAtLeastOneExists(androidx.compose.ui.test.hasText("Display"), 5_000)
     shot("05-settings")
+  }
+
+  @OptIn(ExperimentalTestApi::class)
+  @Test fun bottomTabs() {
+    rule.onNodeWithText("Me").performClick()
+    rule.waitUntilAtLeastOneExists(androidx.compose.ui.test.hasText("Display"), 5_000)
+    rule.onNodeWithText("bottom").performScrollTo().performClick()
+    rule.onNodeWithText("Search").performClick()
+    rule.onNode(hasSetTextAction()).performTextInput("ever17")
+    rule.onNode(hasSetTextAction()).performImeAction()
+    rule.waitUntilAtLeastOneExists(androidx.compose.ui.test.hasText("Ever17 -the out of infinity-"), 10_000)
+    rule.onNodeWithText("Ever17 -the out of infinity-").performClick()
+    rule.waitUntilAtLeastOneExists(androidx.compose.ui.test.hasText("Play time"), 10_000)
+    shot("07-vn-bottom-tabs")
+    // Put it back so the other tests see the default layout.
+    rule.onNodeWithText("Me").performClick()
+    rule.waitUntilAtLeastOneExists(androidx.compose.ui.test.hasText("Display"), 5_000)
+    rule.onNodeWithText("top").performScrollTo().performClick()
   }
 }

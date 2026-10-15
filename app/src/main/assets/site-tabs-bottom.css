@@ -1,0 +1,5 @@
+/* "Tabs: bottom": the page's main tabs (profile / edit / list / votes …) sit above the app's nav bar. */
+body > header > nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; padding: 6px 6px 8px 6px;
+  background: var(--app-bodybg); border-top: 1px solid var(--border); align-items: flex-start !important; }
+body > header > nav > menu > li > a { border-bottom: 1px solid var(--border) !important; border-top: none !important; }
+body > header > nav > menu > li.tabselected > a { margin-bottom: 0 !important; margin-top: -1px; }

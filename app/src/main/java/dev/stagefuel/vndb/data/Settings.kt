@@ -25,6 +25,8 @@ data class Prefs(
   val account: Account? = null,
   /** Release tag the user chose to skip in the update prompt. */
   val skippedUpdate: String? = null,
+  /** Put tab rows (VN tabs, list labels, site page tabs) at the bottom of the screen, near the thumb. */
+  val tabsBottom: Boolean = false,
 )
 
 class Settings(private val context: Context) {
@@ -38,6 +40,7 @@ class Settings(private val context: Context) {
     val username = stringPreferencesKey("username")
     val perms = stringPreferencesKey("perms")
     val skippedUpdate = stringPreferencesKey("skipped_update")
+    val tabsBottom = androidx.datastore.preferences.core.booleanPreferencesKey("tabs_bottom")
   }
 
   val prefs: Flow<Prefs> = context.store.data.map { p -> p.toPrefs() }
@@ -48,6 +51,7 @@ class Settings(private val context: Context) {
     maxViolence = this[K.violence] ?: 0,
     spoilers = this[K.spoilers] ?: 0,
     skippedUpdate = this[K.skippedUpdate],
+    tabsBottom = this[K.tabsBottom] ?: false,
     account = this[K.uid]?.let { Account(it, this[K.username].orEmpty(), this[K.perms].orEmpty().split(',').filter(String::isNotBlank)) },
   )
 
@@ -68,5 +72,6 @@ class Settings(private val context: Context) {
   suspend fun setMaxSexual(v: Int) = context.store.edit { it[K.sexual] = v }
   suspend fun setMaxViolence(v: Int) = context.store.edit { it[K.violence] = v }
   suspend fun setSpoilers(v: Int) = context.store.edit { it[K.spoilers] = v }
+  suspend fun setTabsBottom(v: Boolean) = context.store.edit { it[K.tabsBottom] = v }
   suspend fun skipUpdate(tag: String) = context.store.edit { it[K.skippedUpdate] = tag }
 }

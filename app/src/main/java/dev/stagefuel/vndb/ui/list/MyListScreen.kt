@@ -7,6 +7,8 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import dev.stagefuel.vndb.ui.common.LocalTabsBottom
+import dev.stagefuel.vndb.ui.common.VndbTabs
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -109,19 +111,13 @@ fun MyListScreen(app: VndbApp, prefs: Prefs, nav: Nav, uid: String? = null, name
 
   Column(Modifier.fillMaxSize()) {
     Text("${account.username}'s list", style = VndbType.h1, color = skin.boxTitle, modifier = Modifier.padding(12.dp))
-    Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-      val all = listOf<UlistLabel?>(null) + vm.labels.filter { it.id != 0 }
-      all.forEach { l ->
-        val sel = vm.label == l?.id
-        Text(
-          (l?.label ?: "All") + (l?.count?.let { " ($it)" } ?: ""),
-          style = VndbType.small,
-          color = if (sel) skin.mainText else skin.grayedOut,
-          modifier = Modifier.border(1.dp, skin.border).background(if (sel) skin.blendBg else skin.tabBg)
-            .clickable { vm.label = l?.id; vm.refresh() }.padding(horizontal = 8.dp, vertical = 5.dp),
-        )
-      }
+    val bottomTabs = LocalTabsBottom.current
+    val all = listOf<UlistLabel?>(null) + vm.labels.filter { it.id != 0 }
+    val labelTabs = @Composable {
+      VndbTabs(all.map { l -> (l?.label ?: "All") + (l?.count?.let { " ($it)" } ?: "") },
+        all.indexOfFirst { it?.id == vm.label }.coerceAtLeast(0), small = true) { i -> vm.label = all[i]?.id; vm.refresh() }
     }
+    if (!bottomTabs) labelTabs()
     Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
       Grey("sort: ", style = VndbType.small)
       Column {
@@ -138,13 +134,14 @@ fun MyListScreen(app: VndbApp, prefs: Prefs, nav: Nav, uid: String? = null, name
     vm.error?.let { WarningBox(it, vm::refresh) }
     if (vm.loading && vm.entries.isEmpty()) Loading()
     if (!vm.loading && vm.error == null && vm.entries.isEmpty()) Grey("Nothing here.", Modifier.padding(12.dp), VndbType.body)
-    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    LazyColumn(Modifier.weight(1f).padding(horizontal = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
       itemsIndexed(vm.entries, key = { _, e -> e.id }) { i, e ->
         if (i >= vm.entries.size - 5) LaunchedEffect(vm.entries.size) { vm.loadMore() }
         EntryRow(e, prefs, onOpen = { nav.vn(e.id) }, onEdit = if (editable) ({ editing = e }) else null)
       }
       if (vm.loading && vm.entries.isNotEmpty()) item { Loading() }
     }
+    if (bottomTabs) labelTabs()
   }
   editing?.let { e ->
     ListEditSheet(app, vnId = e.id, title = e.vn?.title ?: e.id, onDismiss = { editing = null }, onSaved = vm::refresh)

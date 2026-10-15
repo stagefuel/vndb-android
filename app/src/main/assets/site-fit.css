@@ -1,0 +1,70 @@
+/* Injected into vndb.org pages so they fit a phone. vndb.org's layout is a 2-column grid with fixed
+   widths (600px profile table, 440px forum columns…) and only a sidebar toggle below 800px. */
+html, body { max-width: 100vw; overflow-x: hidden; }
+body { padding: 0 6px 20px 6px !important; grid-template-columns: minmax(0, 1fr) !important;
+       grid-template-rows: auto auto auto !important; }
+#bgright { display: none !important; }
+body > header { grid-area: 1/1/2/2 !important; }
+body > header h1 { padding: 12px 0 8px 0 !important; font-size: 20px; }
+body > header nav > label { visibility: visible !important; }
+#mainmenu ~ nav { grid-area: 2/1/3/2 !important; margin: 0 0 10px 0 !important; }
+#mainmenu:not(:checked) ~ nav { display: none !important; }
+#mainmenu ~ main { grid-area: 3/1/4/2 !important; min-width: 0; }
+#mainmenu:not(:checked) ~ main { grid-area: 2/1/3/2 !important; }
+
+/* Tab rows wrap instead of running off the side. */
+body > * nav { flex-wrap: wrap; row-gap: 4px; }
+body > * nav > menu { display: flex; flex-wrap: wrap; row-gap: 4px; }
+body > * nav > menu > li:not(:first-child) { margin-left: 6px !important; }
+
+/* Text and media stay inside their boxes. */
+main { overflow-wrap: break-word; }
+main td, main p, main div, main span, main a { overflow-wrap: anywhere; }
+main article { max-width: 100%; overflow-x: auto; }
+main p { margin: 3px 6px; }
+img { max-width: 100%; height: auto; }
+main table { max-width: 100%; }
+pre { white-space: pre-wrap; }
+.history td, .uposts td, .docs td, .releases td { white-space: normal !important; }
+div.warning, div.notice { margin: 5px 0 !important; }
+ul, ol { margin-left: 20px; }
+
+/* Search fields. */
+#q, #bq { width: 100% !important; max-width: 100%; }
+
+/* Profile (/u123). */
+.userpage table { width: 100% !important; }
+.userpage .key { width: 96px !important; }
+.votestats .votegraph { float: none !important; margin: 0 0 10px 0 !important; }
+.votestats .recentvotes { width: 100% !important; }
+.maintabs-dd > div > div { width: min(500px, 92vw) !important; left: calc(-1 * min(470px, 86vw)) !important; }
+
+/* Forum thread lists: stack topic over replies / starter / last post. */
+.discussions thead { display: none; }
+.discussions table, .discussions tbody, .discussions tr { display: block; width: 100% !important; }
+.discussions tr { padding: 3px 0; }
+.discussions td { display: inline-block; width: auto !important; padding: 1px 4px !important; text-align: left !important; }
+.discussions td.tc1 { display: block; padding-left: 4px !important; }
+.discussions td.tc2::after { content: " replies"; }
+.discussions td.tc2, .discussions td.tc3, .discussions td.tc4 { font-size: 11px; }
+
+/* Forum posts: author line above the post instead of a 190px column. */
+.thread table, .thread tbody, .thread tr, .thread td { display: block; width: 100% !important; }
+.thread td.tc1 { border-right: none !important; padding: 4px 6px !important; }
+.thread td.tc2 { padding: 4px 6px 10px 6px !important; overflow-wrap: anywhere; }
+.quote { margin: 0 4px !important; }
+.votebooth { margin: 0 !important; }
+.votebooth td.tc2 { min-width: 0 !important; }
+
+/* Reply box and other forms. */
+article.submit .textpreview, article.submit textarea { width: 100% !important; }
+fieldset.form { margin-left: 0 !important; }
+fieldset.form label { float: none !important; margin-left: 0 !important; width: auto !important; display: block; }
+td .xw, td .lw, td .mw, .xw, .lw { width: 100% !important; max-width: 100% !important; }
+.savedefault, .exportlist, .imageflag { width: auto !important; min-width: 0 !important; max-width: 100%; }
+
+/* DB pages. */
+div.vnimg { float: none !important; width: auto !important; text-align: center; }
+div.vndetails > table { float: none !important; max-width: 100% !important; }
+.staffpage table.stripe { width: 100% !important; }
+.vncards > div, .charbcard > div { min-width: 0 !important; }

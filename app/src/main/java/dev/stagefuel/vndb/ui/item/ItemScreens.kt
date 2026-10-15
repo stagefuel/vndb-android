@@ -56,6 +56,7 @@ import dev.stagefuel.vndb.ui.common.Names
 import dev.stagefuel.vndb.ui.common.SectionHeader
 import dev.stagefuel.vndb.ui.common.VndbBox
 import dev.stagefuel.vndb.ui.common.VndbTabs
+import dev.stagefuel.vndb.ui.common.LocalTabsBottom
 import dev.stagefuel.vndb.ui.common.WarningBox
 import dev.stagefuel.vndb.ui.search.VnRow
 import dev.stagefuel.vndb.ui.theme.LocalSkin
@@ -88,11 +89,14 @@ private fun <T> Loaded(id: String, fetch: suspend () -> T, content: @Composable 
 
 /** A box page: title + content in a LazyColumn, with a trailing "open on vndb.org". */
 @Composable
-private fun Page(id: String, title: String, alt: String?, nav: Nav, body: LazyListScope.() -> Unit) {
-  LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 16.dp)) {
-    item { Column(Modifier.padding(10.dp)) { BoxTitle(title, alt) } }
-    body()
-    item { LinkText("open on vndb.org", Modifier.padding(12.dp)) { nav.web("https://vndb.org/$id") } }
+private fun Page(id: String, title: String, alt: String?, nav: Nav, bottomBar: (@Composable () -> Unit)? = null, body: LazyListScope.() -> Unit) {
+  Column(Modifier.fillMaxSize()) {
+    LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = 16.dp)) {
+      item { Column(Modifier.padding(10.dp)) { BoxTitle(title, alt) } }
+      body()
+      item { LinkText("open on vndb.org", Modifier.padding(12.dp)) { nav.web("https://vndb.org/$id") } }
+    }
+    bottomBar?.invoke()
   }
 }
 
@@ -208,7 +212,9 @@ private fun StaffPage(app: VndbApp, s: Staff, prefs: Prefs, nav: Nav) {
   var tab by rememberSaveable { mutableIntStateOf(0) }
   val credits = viewModel(key = "credits-${s.id}") { LoaderVm { app.repo.staffCredits(s.id) } }
   val voiced = viewModel(key = "voiced-${s.id}") { LoaderVm { app.repo.voiced(s.id) } }
-  Page(s.id, s.name, s.original, nav) {
+  val bottomTabs = LocalTabsBottom.current
+  val tabs = @Composable { VndbTabs(listOf("credits", "voiced"), tab) { tab = it } }
+  Page(s.id, s.name, s.original, nav, bottomBar = if (bottomTabs) tabs else null) {
     item {
       VndbBox(Modifier.padding(horizontal = 6.dp)) {
         val others = s.aliases.filter { !it.ismain }
@@ -221,7 +227,7 @@ private fun StaffPage(app: VndbApp, s: Staff, prefs: Prefs, nav: Nav) {
       }
     }
     description(s.description, nav, prefs)
-    item { Spacer(Modifier.height(8.dp)); VndbTabs(listOf("credits", "voiced"), tab) { tab = it } }
+    if (!bottomTabs) item { Spacer(Modifier.height(8.dp)); tabs() }
     if (tab == 0) when (val st = credits.state) {
       Load.Idle, Load.Loading -> item { Loading() }
       is Load.Failed -> item { WarningBox(st.message) { credits.reload() } }

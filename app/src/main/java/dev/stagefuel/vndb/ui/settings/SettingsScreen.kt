@@ -125,6 +125,7 @@ fun SettingsScreen(app: VndbApp, prefs: Prefs, nav: Nav, updates: dev.stagefuel.
       Choice("Sexual images", listOf("safe", "suggestive", "explicit"), prefs.maxSexual) { scope.launch { app.settings.setMaxSexual(it) } }
       Choice("Violent images", listOf("tame", "violent", "brutal"), prefs.maxViolence) { scope.launch { app.settings.setMaxViolence(it) } }
       Choice("Spoilers", listOf("hide", "minor", "all"), prefs.spoilers) { scope.launch { app.settings.setSpoilers(it) } }
+      Choice("Tabs", listOf("top", "bottom"), if (prefs.tabsBottom) 1 else 0) { scope.launch { app.settings.setTabsBottom(it == 1) } }
     }
     Spacer(Modifier.height(10.dp))
 

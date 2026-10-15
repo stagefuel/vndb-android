@@ -6,6 +6,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -66,13 +68,21 @@ fun SectionHeader(text: String, modifier: Modifier = Modifier) {
 }
 
 /** Item tabs (main / releases / characters …): inactive = tabbg + grey, selected = blendbg + main text. */
+/** True when the user wants tab rows pinned to the bottom of the screen. */
+val LocalTabsBottom = androidx.compose.runtime.staticCompositionLocalOf { false }
+
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun VndbTabs(tabs: List<String>, selected: Int, onSelect: (Int) -> Unit) {
+fun VndbTabs(tabs: List<String>, selected: Int, small: Boolean = false, onSelect: (Int) -> Unit) {
   val s = LocalSkin.current
-  Row(
-    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 6.dp),
-    horizontalArrangement = Arrangement.spacedBy(8.dp),
-    verticalAlignment = Alignment.Bottom,
+  val bottom = LocalTabsBottom.current
+  // Wraps onto extra lines instead of scrolling sideways, so every tab is always visible.
+  FlowRow(
+    (if (bottom) Modifier.fillMaxWidth().background(s.bodyBg).drawBehind {
+      drawLine(s.border, Offset(0f, 0f), Offset(size.width, 0f), 1.dp.toPx())
+    }.padding(horizontal = 6.dp, vertical = 6.dp) else Modifier.fillMaxWidth().padding(horizontal = 6.dp)),
+    horizontalArrangement = Arrangement.spacedBy(if (small) 6.dp else 8.dp),
+    verticalArrangement = Arrangement.spacedBy(6.dp),
   ) {
     tabs.forEachIndexed { i, t ->
       val sel = i == selected
@@ -81,8 +91,8 @@ fun VndbTabs(tabs: List<String>, selected: Int, onSelect: (Int) -> Unit) {
           .border(1.dp, s.border)
           .background(if (sel) s.blendBg else s.tabBg)
           .clickable { onSelect(i) }
-          .padding(horizontal = 10.dp, vertical = if (sel) 6.dp else 4.dp),
-      ) { Text(t, style = VndbType.body, color = if (sel) s.mainText else s.grayedOut) }
+          .padding(horizontal = if (small) 8.dp else 10.dp, vertical = 5.dp),
+      ) { Text(t, style = if (small) VndbType.small else VndbType.body, color = if (sel) s.mainText else s.grayedOut) }
     }
   }
 }

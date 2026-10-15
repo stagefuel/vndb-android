@@ -52,6 +52,7 @@ import dev.stagefuel.vndb.ui.common.Names
 import dev.stagefuel.vndb.ui.common.SectionHeader
 import dev.stagefuel.vndb.ui.common.VndbBox
 import dev.stagefuel.vndb.ui.common.VndbTabs
+import dev.stagefuel.vndb.ui.common.LocalTabsBottom
 import dev.stagefuel.vndb.ui.common.WarningBox
 import dev.stagefuel.vndb.ui.common.formatRating
 import dev.stagefuel.vndb.ui.list.ListEditSheet
@@ -77,12 +78,14 @@ fun VnScreen(app: VndbApp, prefs: Prefs, nav: Nav, id: String) {
           "characters" -> vm.loadCharacters()
         }
       }
-      LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 16.dp)) {
+      val bottomTabs = LocalTabsBottom.current
+      Column(Modifier.fillMaxSize()) {
+      LazyColumn(Modifier.weight(1f), contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 16.dp)) {
         item {
           Column(Modifier.padding(horizontal = 10.dp, vertical = 10.dp)) {
             BoxTitle(v.title, v.alttitle)
           }
-          VndbTabs(TABS, tab) { tab = it }
+          if (!bottomTabs) VndbTabs(TABS, tab) { tab = it }
         }
         when (TABS[tab]) {
           "main" -> mainTab(v, prefs, nav, signedIn = prefs.account != null, onEdit = { editing = true })
@@ -91,6 +94,8 @@ fun VnScreen(app: VndbApp, prefs: Prefs, nav: Nav, id: String) {
           "characters" -> charactersTab(v.id, vm.characters, prefs, nav) { vm.loadCharacters(force = true) }
           "staff" -> staffTab(v, nav)
         }
+      }
+      if (bottomTabs) VndbTabs(TABS, tab) { tab = it }
       }
       if (editing) ListEditSheet(app, vnId = v.id, title = v.title, onDismiss = { editing = false })
     }
