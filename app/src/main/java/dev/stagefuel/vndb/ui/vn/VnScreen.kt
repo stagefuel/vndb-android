@@ -2,7 +2,9 @@ package dev.stagefuel.vndb.ui.vn
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -63,7 +65,7 @@ private val TABS = listOf("main", "tags", "releases", "characters", "staff")
 
 @Composable
 fun VnScreen(app: VndbApp, prefs: Prefs, nav: Nav, id: String) {
-  val vm = viewModel(key = "vn-$id") { VnVm(app.repo, id) }
+  val vm = viewModel(key = "vn-$id") { VnVm(app.repo, id, app.voteStats) }
   var tab by rememberSaveable { mutableIntStateOf(0) }
   var editing by rememberSaveable { mutableStateOf(false) }
 
@@ -74,6 +76,7 @@ fun VnScreen(app: VndbApp, prefs: Prefs, nav: Nav, id: String) {
       val v = st.value
       LaunchedEffect(tab) {
         when (TABS[tab]) {
+          "main" -> vm.loadVotes()
           "releases" -> vm.loadReleases()
           "characters" -> vm.loadCharacters()
         }
@@ -88,7 +91,10 @@ fun VnScreen(app: VndbApp, prefs: Prefs, nav: Nav, id: String) {
           if (!bottomTabs) VndbTabs(TABS, tab) { tab = it }
         }
         when (TABS[tab]) {
-          "main" -> mainTab(v, prefs, nav, signedIn = prefs.account != null, onEdit = { editing = true })
+          "main" -> {
+            mainTab(v, prefs, nav, signedIn = prefs.account != null, onEdit = { editing = true })
+            item { VoteStatsBox(v.id, vm.votes, nav) { vm.loadVotes(force = true) } }
+          }
           "tags" -> item { TagsTab(v, prefs, nav) }
           "releases" -> releasesTab(vm.releases, nav) { vm.loadReleases(force = true) }
           "characters" -> charactersTab(v.id, vm.characters, prefs, nav) { vm.loadCharacters(force = true) }
@@ -305,6 +311,57 @@ private fun LazyListScope.staffTab(v: Vn, nav: Nav) {
             s.note?.takeIf { it.isNotBlank() }?.let { Grey("  $it") }
           }
         }
+      }
+    }
+  }
+}
+
+/** The site's "User stats" box: vote distribution, totals, recent votes and a link to every vote. */
+@Composable
+private fun VoteStatsBox(vnId: String, state: Load<dev.stagefuel.vndb.web.VoteStats?>, nav: Nav, retry: () -> Unit) {
+  val skin = LocalSkin.current
+  VndbBox(Modifier.padding(start = 6.dp, end = 6.dp, top = 10.dp)) {
+    SectionHeader("User stats")
+    when (state) {
+      Load.Idle, Load.Loading -> Loading()
+      is Load.Failed -> WarningBox(state.message, onRetry = retry)
+      is Load.Done -> {
+        val s = state.value
+        if (s == null || s.total == 0) {
+          Grey("Nobody has voted on this visual novel yet.", style = VndbType.body)
+        } else {
+          val max = s.buckets.maxOf { it.second }.coerceAtLeast(1)
+          s.buckets.forEach { (n, c) ->
+            Row(Modifier.fillMaxWidth().padding(vertical = 1.dp), verticalAlignment = Alignment.CenterVertically) {
+              Text("$n", style = VndbType.body, color = skin.mainText, textAlign = androidx.compose.ui.text.style.TextAlign.End,
+                modifier = Modifier.width(24.dp))
+              Spacer(Modifier.width(8.dp))
+              Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                if (c > 0) androidx.compose.foundation.layout.Box(
+                  Modifier.fillMaxWidth(0.82f * c / max).height(14.dp).background(skin.border),
+                )
+                Text(" $c", style = VndbType.small, color = skin.mainText)
+              }
+            }
+          }
+          s.summary.forEach { Grey(it, Modifier.padding(top = 2.dp), VndbType.small) }
+          if (s.recent.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            Text("Recent votes", style = VndbType.body.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold), color = skin.mainText)
+            s.recent.forEachIndexed { i, r ->
+              InfoRow(r.date, odd = i % 2 == 0, keyWidth = 96) {
+                Row(Modifier.fillMaxWidth()) {
+                  Box(Modifier.weight(1f)) {
+                    if (r.userId != null) LinkText(r.user ?: r.userId) { nav.web("https://vndb.org/${r.userId}") }
+                    else Grey(r.user ?: "hidden", style = VndbType.body)
+                  }
+                  Text(r.vote, style = VndbType.body, color = skin.mainText)
+                }
+              }
+            }
+          }
+        }
+        LinkText("all votes ›", Modifier.padding(top = 6.dp)) { nav.web("https://vndb.org/$vnId/votes") }
       }
     }
   }

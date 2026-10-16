@@ -68,6 +68,15 @@ fun SectionHeader(text: String, modifier: Modifier = Modifier) {
 }
 
 /** Item tabs (main / releases / characters …): inactive = tabbg + grey, selected = blendbg + main text. */
+/** "the visual novel database", as in the site header; the injected site CSS puts vndb.org's own header in the same spot. */
+@Composable
+fun SiteTitle() = Text(
+  "the visual novel database",
+  style = VndbType.siteTitle,
+  color = LocalSkin.current.mainTitle,
+  modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 16.dp, bottom = 8.dp),
+)
+
 /** True when the user wants tab rows pinned to the bottom of the screen. */
 val LocalTabsBottom = androidx.compose.runtime.staticCompositionLocalOf { false }
 

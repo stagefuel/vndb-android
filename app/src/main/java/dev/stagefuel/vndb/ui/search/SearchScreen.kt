@@ -105,13 +105,9 @@ class SearchVm(private val repo: VndbRepository) : ViewModel() {
 fun SearchScreen(app: VndbApp, prefs: Prefs, nav: Nav) {
   val vm = viewModel { SearchVm(app.repo) }
   val skin = LocalSkin.current
-  Column(Modifier.fillMaxSize()) {
-    Text(
-      "the visual novel database",
-      style = VndbType.siteTitle,
-      color = skin.mainTitle,
-      modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 16.dp, bottom = 8.dp),
-    )
+  val bottom = dev.stagefuel.vndb.ui.common.LocalTabsBottom.current
+  // With "Tabs: bottom" the search box and sort row sit at the bottom, above the nav bar.
+  val searchBar = @Composable {
     BasicTextField(
       value = vm.query,
       onValueChange = { vm.query = it },
@@ -126,6 +122,8 @@ fun SearchScreen(app: VndbApp, prefs: Prefs, nav: Nav) {
         inner()
       },
     )
+  }
+  val sortRow = @Composable {
     Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
       Grey("sort:", style = VndbType.small)
       SEARCH_SORTS.forEachIndexed { i, (_, label, _) ->
@@ -135,6 +133,10 @@ fun SearchScreen(app: VndbApp, prefs: Prefs, nav: Nav) {
         )
       }
     }
+  }
+  Column(Modifier.fillMaxSize()) {
+    dev.stagefuel.vndb.ui.common.SiteTitle()
+    if (!bottom) { searchBar(); sortRow() }
     if (!vm.searched && vm.results.isEmpty()) {
       vm.stats?.let { StatsBox(it) }
       vm.quote?.let { q -> QuoteLine(q) { q.vn?.id?.takeIf(String::isNotEmpty)?.let(nav::vn) } }
@@ -144,7 +146,7 @@ fun SearchScreen(app: VndbApp, prefs: Prefs, nav: Nav) {
       vm.loading && vm.results.isEmpty() -> Loading()
       vm.searched && vm.results.isEmpty() -> Grey("No results.", Modifier.padding(12.dp), VndbType.body)
     }
-    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    LazyColumn(Modifier.weight(1f).padding(horizontal = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
       itemsIndexed(vm.results, key = { _, v -> v.id }) { i, v ->
         if (i >= vm.results.size - 5) LaunchedEffect(vm.results.size) { vm.loadMore() }
         VnRow(v, prefs) { nav.vn(v.id) }
@@ -152,6 +154,7 @@ fun SearchScreen(app: VndbApp, prefs: Prefs, nav: Nav) {
       if (vm.loading && vm.results.isNotEmpty()) item { Loading() }
       if (vm.more && !vm.loading) item { LinkText("next ›", Modifier.padding(12.dp)) { vm.loadMore() } }
     }
+    if (bottom) Column(Modifier.padding(bottom = 6.dp)) { sortRow(); searchBar() }
   }
 }
 

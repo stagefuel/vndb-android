@@ -14,8 +14,8 @@ android {
     applicationId = "dev.stagefuel.vndb"
     minSdk = 29
     targetSdk = 36
-    versionCode = 3
-    versionName = "0.3.0"
+    versionCode = 4
+    versionName = "0.3.1"
   }
 
   signingConfigs {
@@ -76,6 +76,7 @@ dependencies {
   implementation(libs.kotlinx.coroutines.android)
   implementation(libs.kotlinx.serialization.json)
   implementation(libs.okhttp)
+  implementation(libs.jsoup)
   implementation(libs.coil.compose)
   implementation(libs.coil.network.okhttp)
 

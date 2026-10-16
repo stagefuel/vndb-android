@@ -7,6 +7,8 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -38,6 +40,7 @@ class ScreenshotTest {
       dispatcher = object : Dispatcher() {
         override fun dispatch(request: RecordedRequest): MockResponse {
           val body = request.body.readUtf8()
+          if (request.path == "/site/v17") return MockResponse().setBody(ScreenshotTest::class.java.getResource("/site/v17_stats.html")!!.readText())
           val file = when {
             request.path!!.endsWith("/vn") && body.contains("searchrank") -> "live_vn_v17.json"
             request.path!!.endsWith("/vn") -> "live_vn_v17.json"
@@ -51,6 +54,7 @@ class ScreenshotTest {
       start()
       VndbApp.apiBase = url("/kana").toString().trimEnd('/')
       VndbApp.checkUpdates = false
+      VndbApp.siteBase = url("/site").toString().trimEnd('/')
     }
 
     @AfterClass @JvmStatic fun stop() = server.shutdown()
@@ -78,6 +82,11 @@ class ScreenshotTest {
     rule.onNodeWithText("Ever17 -the out of infinity-").performClick()
     rule.waitUntilAtLeastOneExists(androidx.compose.ui.test.hasText("Play time"), 10_000)
     shot("03-vn-main")
+    rule.onAllNodes(androidx.compose.ui.test.hasScrollToNodeAction())[0].performScrollToNode(androidx.compose.ui.test.hasText("User stats"))
+    rule.waitUntilAtLeastOneExists(androidx.compose.ui.test.hasText("Recent votes"), 10_000)
+    rule.onAllNodes(androidx.compose.ui.test.hasScrollToNodeAction())[0].performScrollToNode(androidx.compose.ui.test.hasText("all votes ›"))
+    shot("03b-vn-votes")
+    rule.onAllNodes(androidx.compose.ui.test.hasScrollToNodeAction())[0].performScrollToIndex(0)
     for ((tab, wait) in listOf("tags" to "summary", "releases" to "Japanese (", "characters" to "Protagonist", "staff" to "Scenario")) {
       rule.onNodeWithText(tab).performClick()
       rule.waitUntilAtLeastOneExists(androidx.compose.ui.test.hasText(wait, substring = true), 10_000)

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1
+- VN pages show user stats: vote distribution, recent votes and a link to all votes.
+- Notifications, history and other site tables keep their columns and scroll sideways inside their box.
+- Forum board links no longer overlap.
+- "the visual novel database" header in the same place on Search, Me and site pages; with bottom tabs the search box sits at the bottom too.
+
 ## 0.3.0
 - Setting to put tabs at the bottom of the screen (VN tabs, list labels, and vndb.org page tabs like profile / edit / list / votes).
 - List labels wrap onto extra lines, so all of them are visible without scrolling sideways.

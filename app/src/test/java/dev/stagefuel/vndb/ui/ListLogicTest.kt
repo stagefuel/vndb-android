@@ -25,6 +25,8 @@ class ListLogicTest {
   @Test fun routes() {
     assertEquals(Routes.InApp("vn/v17"), Routes.resolve("https://vndb.org/v17"))
     assertEquals(Routes.InApp("vn/v17"), Routes.resolve("https://vndb.org/V17/chars#chars"))
+    // Sub-pages without a native screen (votes, edit, history…) stay on the site.
+    assertEquals(Routes.InApp("web?url=https%3A%2F%2Fvndb.org%2Fv17%2Fvotes"), Routes.resolve("https://vndb.org/v17/votes"))
     assertEquals(Routes.InApp("web?url=https%3A%2F%2Fvndb.org%2Ft%2Fdb"), Routes.resolve("https://vndb.org/t/db"))
     assertEquals(Routes.External("https://example.com/v17"), Routes.resolve("https://example.com/v17"))
   }

@@ -9,6 +9,8 @@ import dev.stagefuel.vndb.api.Character
 import dev.stagefuel.vndb.api.Release
 import dev.stagefuel.vndb.api.Vn
 import dev.stagefuel.vndb.data.VndbRepository
+import dev.stagefuel.vndb.web.VoteStats
+import dev.stagefuel.vndb.web.VoteStatsSource
 import kotlinx.coroutines.launch
 
 sealed interface Load<out T> {
@@ -18,7 +20,18 @@ sealed interface Load<out T> {
   data class Failed(val message: String) : Load<Nothing>
 }
 
-class VnVm(private val repo: VndbRepository, val id: String) : ViewModel() {
+class VnVm(private val repo: VndbRepository, val id: String, private val voteSrc: VoteStatsSource? = null) : ViewModel() {
+  var votes by mutableStateOf<Load<VoteStats?>>(Load.Idle); private set
+
+  fun loadVotes(force: Boolean = false) {
+    val src = voteSrc ?: return
+    if (!force && votes !is Load.Idle) return
+    viewModelScope.launch {
+      votes = Load.Loading
+      votes = runCatching { src.get(id) }.fold({ Load.Done(it) }, { Load.Failed(it.message ?: "Failed") })
+    }
+  }
+
   var vn by mutableStateOf<Load<Vn>>(Load.Idle); private set
   var releases by mutableStateOf<Load<List<Release>>>(Load.Idle); private set
   var characters by mutableStateOf<Load<List<Character>>>(Load.Idle); private set

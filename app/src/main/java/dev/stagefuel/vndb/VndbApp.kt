@@ -18,6 +18,8 @@ class VndbApp : Application(), SingletonImageLoader.Factory {
     @JvmStatic var apiBase = "https://api.vndb.org/kana"
     /** Turned off by tests so they never reach GitHub. */
     @JvmStatic var checkUpdates = true
+    /** vndb.org itself, for the few things the API lacks (vote stats). Tests point it at a fixture server. */
+    @JvmStatic var siteBase = "https://vndb.org"
   }
 
   val http: OkHttpClient by lazy {
@@ -30,6 +32,7 @@ class VndbApp : Application(), SingletonImageLoader.Factory {
   val api: KanaClient by lazy { KanaClient(http, token = { settings.token() }, baseUrl = apiBase) }
   val repo: VndbRepository by lazy { VndbRepository(api) }
   val updater: Updater by lazy { Updater(http) }
+  val voteStats by lazy { dev.stagefuel.vndb.web.VoteStatsSource(http, siteBase) }
 
   override fun newImageLoader(context: PlatformContext): ImageLoader =
     ImageLoader.Builder(context)

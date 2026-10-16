@@ -25,7 +25,7 @@ object Routes {
     }
   }
 
-  private val vnUrl = Regex("""^https?://(?:www\.)?vndb\.org/(v\d+)(?:[/#?].*)?$""", RegexOption.IGNORE_CASE)
+  private val vnUrl = Regex("""^https?://(?:www\.)?vndb\.org/(v\d+)(?:/(?:chars|releases|staff|tags)?)?(?:[#?].*)?$""", RegexOption.IGNORE_CASE)
   /** Characters, staff, producers, tags, traits and releases have native pages (not their sub-pages). */
   private val itemUrl = Regex("""^https?://(?:www\.)?vndb\.org/([cspgir]\d+)/?(?:#.*)?$""", RegexOption.IGNORE_CASE)
   private val siteUrl = Regex("""^https?://(?:www\.)?vndb\.org(?:/.*)?$""", RegexOption.IGNORE_CASE)

@@ -54,7 +54,9 @@ fun SettingsScreen(app: VndbApp, prefs: Prefs, nav: Nav, updates: dev.stagefuel.
   var busy by remember { mutableStateOf(false) }
   var error by remember { mutableStateOf<String?>(null) }
 
-  Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(8.dp)) {
+  Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+    dev.stagefuel.vndb.ui.common.SiteTitle()
+    Column(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp)) {
     prefs.account?.let { acc ->
       VndbBox {
         SectionHeader(acc.username)
@@ -143,6 +145,7 @@ fun SettingsScreen(app: VndbApp, prefs: Prefs, nav: Nav, updates: dev.stagefuel.
         LinkText("VNDB Data License") { nav.web("https://vndb.org/d17") }
         Grey(".", style = VndbType.body)
       }
+    }
     }
   }
 }

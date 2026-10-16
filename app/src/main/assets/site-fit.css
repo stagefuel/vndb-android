@@ -5,7 +5,9 @@ body { padding: 0 6px 20px 6px !important; grid-template-columns: minmax(0, 1fr)
        grid-template-rows: auto auto auto !important; }
 #bgright { display: none !important; }
 body > header { grid-area: 1/1/2/2 !important; }
-body > header h1 { padding: 12px 0 8px 0 !important; font-size: 20px; }
+/* Same spot and size as the app's own "the visual novel database" title. */
+body > header h1 { padding: 16px 6px 8px 6px !important; margin: 0 !important; font-size: 20px; line-height: 1.2;
+  text-align: left !important; align-self: stretch !important; }
 body > header nav > label { visibility: visible !important; }
 #mainmenu ~ nav { grid-area: 2/1/3/2 !important; margin: 0 0 10px 0 !important; }
 #mainmenu:not(:checked) ~ nav { display: none !important; }
@@ -19,13 +21,26 @@ body > * nav > menu > li:not(:first-child) { margin-left: 6px !important; }
 
 /* Text and media stay inside their boxes. */
 main { overflow-wrap: break-word; }
-main td, main p, main div, main span, main a { overflow-wrap: anywhere; }
+main p, main div { overflow-wrap: break-word; }
 main article { max-width: 100%; overflow-x: auto; }
 main p { margin: 3px 6px; }
 img { max-width: 100%; height: auto; }
 main table { max-width: 100%; }
 pre { white-space: pre-wrap; }
-.history td, .uposts td, .docs td, .releases td { white-space: normal !important; }
+.docs td, .releases td { white-space: normal !important; }
+
+/* Listing tables (notifications, history, posts…): keep columns readable and let just the table
+   scroll sideways inside its box. The last column (titles, summaries) wraps at word boundaries. */
+main article.browse:not(.discussions), main article.overflow-hack { overflow-x: auto !important; }
+main article.browse:not(.discussions) > table { width: auto !important; min-width: 100%; max-width: none !important; }
+main article.browse:not(.discussions) td { white-space: nowrap !important; }
+main article.browse:not(.discussions) td:last-child { white-space: normal !important; min-width: 220px; }
+main article.browse td.tc1 { padding-left: 4px !important; }
+.history td.tc4 { width: auto !important; }
+
+/* Forum board links (Index / All boards / …) are inline boxes; when they wrap the borders overlap. */
+p.browseopts { line-height: 1.5; }
+p.browseopts a { display: inline-block; margin: 2px !important; }
 div.warning, div.notice { margin: 5px 0 !important; }
 ul, ol { margin-left: 20px; }
 
