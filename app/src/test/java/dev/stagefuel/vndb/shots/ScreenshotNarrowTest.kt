@@ -80,7 +80,7 @@ class ScreenshotNarrowTest {
     rule.waitUntilAtLeastOneExists(androidx.compose.ui.test.hasText("Ever17 -the out of infinity-"), 10_000)
     shot("02-results")
     rule.onNodeWithText("Ever17 -the out of infinity-").performClick()
-    rule.waitUntilAtLeastOneExists(androidx.compose.ui.test.hasText("Play time"), 10_000)
+    rule.waitUntilAtLeastOneExists(androidx.compose.ui.test.hasText("Length"), 10_000)
     shot("03-vn-main")
     rule.onAllNodes(androidx.compose.ui.test.hasScrollToNodeAction())[0].performScrollToNode(androidx.compose.ui.test.hasText("Relations"))
     shot("03b-vn-main-lower")

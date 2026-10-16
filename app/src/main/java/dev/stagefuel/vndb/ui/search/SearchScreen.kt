@@ -25,6 +25,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.input.ImeAction
@@ -61,10 +65,22 @@ class SearchVm(private val repo: VndbRepository) : ViewModel() {
   var stats by mutableStateOf<dev.stagefuel.vndb.api.Stats?>(null); private set
 
   var quote by mutableStateOf<dev.stagefuel.vndb.api.Quote?>(null); private set
+  var filter by mutableStateOf(dev.stagefuel.vndb.data.SearchFilter())
+  var upcoming by mutableStateOf<List<dev.stagefuel.vndb.ui.feed.FeedItem>>(emptyList()); private set
+  var recent by mutableStateOf<List<dev.stagefuel.vndb.ui.feed.FeedItem>>(emptyList()); private set
+  var randomError by mutableStateOf<String?>(null); private set
 
   init {
     viewModelScope.launch { runCatching { stats = repo.stats() } }
     viewModelScope.launch { runCatching { quote = repo.randomQuote() } }
+    val none = dev.stagefuel.vndb.data.SearchFilter()
+    viewModelScope.launch { runCatching { upcoming = dev.stagefuel.vndb.ui.feed.group(repo.releaseFeed(true, none, 1, 40).results).take(15) } }
+    viewModelScope.launch { runCatching { recent = dev.stagefuel.vndb.ui.feed.group(repo.releaseFeed(false, none, 1, 40).results).take(15) } }
+  }
+
+  fun randomVn(open: (String) -> Unit) = viewModelScope.launch {
+    randomError = null
+    runCatching { repo.randomVnId() }.onSuccess(open).onFailure { randomError = it.message ?: "Couldn't pick a random VN" }
   }
   var results by mutableStateOf<List<Vn>>(emptyList()); private set
   /** "vn" or a [dev.stagefuel.vndb.data.SearchTypes] key. */
@@ -82,7 +98,8 @@ class SearchVm(private val repo: VndbRepository) : ViewModel() {
   fun search() {
     val q = query.trim()
     // Nothing to search for (blank box, relevance sort or a non-VN type): back to the start page.
-    if (q.isEmpty() && (sort == 0 || type != "vn")) { reset(); return }
+    if (q.isEmpty() && type != "vn") { reset(); return }
+    if (q.isEmpty() && sort == 0 && filter.isEmpty) { reset(); return }
     page = 1
     load(q, reset = true)
   }
@@ -104,7 +121,7 @@ class SearchVm(private val repo: VndbRepository) : ViewModel() {
       loading = true; error = null
       if (type == "vn") {
         val (key, _, rev) = SEARCH_SORTS[sort]
-        runCatching { repo.browseVns(q, key, rev, page) }
+        runCatching { repo.browseVns(q, key, rev, page, filter) }
           .onSuccess { r -> hits = emptyList(); results = if (reset) r.results else (results + r.results).distinctBy { it.id }; more = r.more; searched = true }
           .onFailure { error = it.message ?: "Search failed" }
       } else {
@@ -124,6 +141,10 @@ fun SearchScreen(app: VndbApp, prefs: Prefs, nav: Nav) {
   val bottom = dev.stagefuel.vndb.ui.common.LocalTabsBottom.current
   // With "Tabs: bottom" the search box and sort row sit at the bottom, above the nav bar.
   val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+  var filtering by remember { mutableStateOf(false) }
+  if (filtering) dev.stagefuel.vndb.ui.common.FilterSheet(vm.filter, full = true, onDismiss = { filtering = false }) { f ->
+    filtering = false; vm.filter = f; vm.search()
+  }
   val searchBar = @Composable {
     BasicTextField(
       value = vm.query,
@@ -155,21 +176,43 @@ fun SearchScreen(app: VndbApp, prefs: Prefs, nav: Nav) {
       SEARCH_SORTS.forEachIndexed { i, (_, label, _) ->
         Text(
           label, style = VndbType.small, color = if (vm.sort == i) skin.mainText else skin.link,
-          modifier = Modifier.clickable { vm.sort = i; if (vm.query.isNotBlank() || i != 0) vm.search() },
+          modifier = Modifier.clickable { vm.sort = i; if (vm.query.isNotBlank() || i != 0 || !vm.filter.isEmpty) vm.search() },
         )
       }
+    }
+    if (vm.type == "vn") Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+      Grey("filter:", style = VndbType.small)
+      LinkText(if (vm.filter.isEmpty) "none" else "${vm.filter.count} set", style = VndbType.small) { filtering = true }
+      if (!vm.filter.isEmpty) LinkText("clear", style = VndbType.small) { vm.filter = dev.stagefuel.vndb.data.SearchFilter(); vm.search() }
     }
   }
   val idle = !vm.searched && vm.empty && vm.error == null && !vm.loading
   if (idle) {
-    // Start page: the title, stats and quote (and, with top tabs, the search box) sit just above the middle.
+    // Start page: the block sits just above the middle while it fits on screen, and scrolls once the release
+    // rows make it taller (40% of the spare height above it).
     Column(Modifier.fillMaxSize()) {
-      Spacer(Modifier.weight(0.4f))
-      dev.stagefuel.vndb.ui.common.SiteTitle()
-      if (!bottom) { searchBar(); sortRow() }
-      vm.stats?.let { StatsBox(it) }
-      vm.quote?.let { q -> QuoteLine(q) { q.vn?.id?.takeIf(String::isNotEmpty)?.let(nav::vn) } }
-      Spacer(Modifier.weight(0.6f))
+      androidx.compose.foundation.layout.BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+        val viewport = maxHeight
+        var contentH by remember { mutableStateOf(0.dp) }
+        val density = androidx.compose.ui.platform.LocalDensity.current
+        val top = ((viewport - contentH) * 0.4f).coerceAtLeast(0.dp)
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+          Spacer(Modifier.height(top))
+          Column(Modifier.fillMaxWidth().onSizeChanged { contentH = with(density) { it.height.toDp() } }) {
+            dev.stagefuel.vndb.ui.common.SiteTitle()
+            if (!bottom) { searchBar(); sortRow() }
+            vm.stats?.let { StatsBox(it) }
+            vm.quote?.let { q -> QuoteLine(q) { q.vn?.id?.takeIf(String::isNotEmpty)?.let(nav::vn) } }
+            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.Center) {
+              LinkText("random visual novel", style = VndbType.small) { vm.randomVn(nav::vn) }
+            }
+            vm.randomError?.let { Grey(it, Modifier.fillMaxWidth().padding(horizontal = 12.dp)) }
+            dev.stagefuel.vndb.ui.feed.FeedRow(dev.stagefuel.vndb.ui.feed.FEED_UPCOMING, vm.upcoming, prefs, nav)
+            dev.stagefuel.vndb.ui.feed.FeedRow(dev.stagefuel.vndb.ui.feed.FEED_RECENT, vm.recent, prefs, nav)
+            Spacer(Modifier.height(8.dp))
+          }
+        }
+      }
       if (bottom) Column(Modifier.padding(bottom = 6.dp)) { sortRow(); searchBar() }
     }
     return

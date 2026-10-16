@@ -77,18 +77,42 @@ class VndbRepository(private val api: KanaClient) {
   }
 
   /** The "search" sort is VNDB's search rank; anything else needs a query (or browses everything). */
-  suspend fun browseVns(q: String, sort: String, reverse: Boolean, page: Int): QueryResult<Vn> {
+  suspend fun browseVns(q: String, sort: String, reverse: Boolean, page: Int, extra: SearchFilter = SearchFilter()): QueryResult<Vn> {
     val id = Filters.vnId(q)
-    val filter = when {
+    val base = when {
       id != null -> Filters.id(id)
       q.isNotBlank() -> Filters.search(q)
       else -> null
     }
+    val filter = SearchFilter.and(listOfNotNull(base) + extra.parts())
     val s = if (sort == "searchrank" && (id != null || q.isBlank())) "rating" else sort
     return api.query("vn", Query(filters = filter, fields = Fields.VN_BRIEF, sort = s, reverse = reverse, results = 25, page = page), Vn.serializer())
   }
 
   suspend fun stats(): Stats = api.stats()
+
+  /**
+   * Official releases after today (soonest first) or up to today (newest first). The same VN shows up once per
+   * edition/platform, so callers group by VN.
+   */
+  suspend fun releaseFeed(upcoming: Boolean, extra: SearchFilter, page: Int, results: Int = 50): QueryResult<dev.stagefuel.vndb.api.FeedRelease> {
+    val today = java.time.LocalDate.now().toString()
+    val parts = listOf(Filters.f("released", if (upcoming) ">" else "<=", today), Filters.f("official", "=", 1)) + extra.parts()
+    return api.query("release", Query(filters = SearchFilter.and(parts), fields = Fields.FEED, sort = "released", reverse = !upcoming,
+      results = results, page = page), dev.stagefuel.vndb.api.FeedRelease.serializer())
+  }
+
+  /** A random existing VN: the first id at or after a random number below the newest id (ids have gaps). */
+  suspend fun randomVnId(): String {
+    val newest = api.query("vn", Query(fields = "id", sort = "id", reverse = true, results = 1), dev.stagefuel.vndb.api.IdOnly.serializer())
+      .results.first().id.drop(1).toInt()
+    repeat(3) {
+      val r = kotlin.random.Random.nextInt(1, newest + 1)
+      api.query("vn", Query(filters = Filters.f("id", ">=", "v$r"), fields = "id", sort = "id", results = 1), dev.stagefuel.vndb.api.IdOnly.serializer())
+        .results.firstOrNull()?.let { return it.id }
+    }
+    return "v$newest"
+  }
   /** The VN's best-rated quotes (the site shows them under the description). */
   suspend fun vnQuotes(vnId: String, n: Int = 10): List<Quote> =
     api.query("quote", Query(filters = Filters.quotesOf(vnId), fields = Fields.QUOTE, sort = "score", reverse = true, results = n), Quote.serializer()).results
@@ -235,4 +259,37 @@ object SearchTypes {
   fun title(o: kotlinx.serialization.json.JsonObject) = o.str("title") ?: o.str("name") ?: o.str("id").orEmpty()
   fun original(o: kotlinx.serialization.json.JsonObject) = o.str("alttitle") ?: o.str("original")
   fun id(o: kotlinx.serialization.json.JsonObject) = o.str("id").orEmpty()
+}
+
+/**
+ * Filters picked in the filter sheet. Values within a group are OR'd (any of these languages), groups are AND'd.
+ * VN search uses all of them; the release feeds only languages and platforms (`lang`/`platform` work on both).
+ */
+data class SearchFilter(
+  val langs: Set<String> = emptySet(),
+  val platforms: Set<String> = emptySet(),
+  val lengths: Set<Int> = emptySet(),
+  val fromYear: Int? = null,
+  val toYear: Int? = null,
+) {
+  val count get() = langs.size + platforms.size + lengths.size + listOfNotNull(fromYear, toYear).size
+  val isEmpty get() = count == 0
+
+  fun parts(): List<kotlinx.serialization.json.JsonElement> = buildList {
+    if (langs.isNotEmpty()) add(anyOf(langs.sorted().map { Filters.f("lang", "=", it) }))
+    if (platforms.isNotEmpty()) add(anyOf(platforms.sorted().map { Filters.f("platform", "=", it) }))
+    if (lengths.isNotEmpty()) add(anyOf(lengths.sorted().map { Filters.f("length", "=", it) }))
+    fromYear?.let { add(Filters.f("released", ">=", "$it-01-01")) }
+    toYear?.let { add(Filters.f("released", "<=", "$it-12-31")) }
+  }
+
+  companion object {
+    private fun combine(op: String, l: List<kotlinx.serialization.json.JsonElement>) = when (l.size) {
+      0 -> null
+      1 -> l[0]
+      else -> kotlinx.serialization.json.JsonArray(listOf(JsonPrimitive(op)) + l)
+    }
+    private fun anyOf(l: List<kotlinx.serialization.json.JsonElement>) = combine("or", l)!!
+    fun and(l: List<kotlinx.serialization.json.JsonElement>) = combine("and", l)
+  }
 }

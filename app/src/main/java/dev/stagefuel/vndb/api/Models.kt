@@ -389,3 +389,20 @@ data class ReleaseImage(
 
 @Serializable
 data class ReleaseImages(val id: String, val title: String = "", val released: String? = null, val images: List<ReleaseImage> = emptyList())
+
+@Serializable
+data class IdOnly(val id: String)
+
+@Serializable
+data class FeedVn(val id: String, val title: String = "", val image: Image? = null)
+
+/** A release in the upcoming / just-released feeds, with its VN's title and cover. */
+@Serializable
+data class FeedRelease(
+  val id: String,
+  val title: String = "",
+  val released: String? = null,
+  val platforms: List<String> = emptyList(),
+  val languages: List<ReleaseLang> = emptyList(),
+  val vns: List<FeedVn> = emptyList(),
+)

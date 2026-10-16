@@ -36,6 +36,8 @@ object Fields {
     "releases.id,releases.list_status,releases.title"
   const val RELEASE_IMAGES = "id,title,released,images.id,images.type,images.url,images.dims,images.sexual," +
     "images.violence,images.thumbnail,images.thumbnail_dims,images.photo,images.languages"
+  const val FEED = "id,title,released,platforms,languages.lang,vns.id,vns.title,vns.image.url,vns.image.sexual," +
+    "vns.image.violence,vns.image.thumbnail"
   const val QUOTE = "id,quote,score,vn.id,vn.title,character.id,character.name"
 }
 

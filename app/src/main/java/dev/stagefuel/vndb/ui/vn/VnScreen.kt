@@ -155,6 +155,8 @@ private fun LazyListScope.mainTab(
       Spacer(Modifier.height(8.dp))
       Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         if (signedIn) LinkText("edit list entry") { onEdit() }
+        val ctx = androidx.compose.ui.platform.LocalContext.current
+        LinkText("share") { shareVn(ctx, v) }
         LinkText("history") { nav.web("https://vndb.org/${v.id}/hist") }
         LinkText("open on vndb.org") { nav.web("https://vndb.org/${v.id}") }
       }
@@ -212,8 +214,15 @@ private fun InfoTable(v: Vn, nav: Nav) {
   if (v.aliases.isNotEmpty()) row("Aliases") { text(v.aliases.joinToString(", ")) }
   row("Status") { text(Names.devstatus[v.devstatus] ?: "") }
   if (v.released != null) row("Released") { text(v.released) }
-  val len = v.lengthMinutes?.let { "${Names.minutes(it)} (${v.lengthVotes ?: 0} votes)" } ?: v.length?.let { Names.lengths[it] }
-  if (len != null) row("Play time") { text(len) }
+  // "Long (33h07m from 203 votes)": VNDB's length category, from the vote average when there is one.
+  val bucket = v.lengthMinutes?.let { lengthBucket(it) } ?: v.length
+  val label = bucket?.let { LENGTH_LABEL[it] }
+  val len = when {
+    v.lengthMinutes != null -> "${label?.let { "$it (" } ?: ""}${Names.minutes(v.lengthMinutes)} from ${v.lengthVotes ?: 0} votes${if (label != null) ")" else ""}"
+    bucket != null -> Names.lengths[bucket]
+    else -> null
+  }
+  if (len != null) row("Length") { text(len) }
   if (v.developers.isNotEmpty()) row("Developer") {
     Column { v.developers.forEach { d -> LinkText(d.name) { nav.item(d.id) } } }
   }
@@ -461,4 +470,25 @@ private fun LazyListScope.vnQuotes(quotes: List<dev.stagefuel.vndb.api.Quote>, n
       }
     }
   }
+}
+
+private val LENGTH_LABEL = mapOf(1 to "Very short", 2 to "Short", 3 to "Medium", 4 to "Long", 5 to "Very long")
+
+/** VNDB's length buckets: < 2h, 2-10h, 10-30h, 30-50h, > 50h. */
+internal fun lengthBucket(minutes: Int): Int = when {
+  minutes < 2 * 60 -> 1
+  minutes < 10 * 60 -> 2
+  minutes < 30 * 60 -> 3
+  minutes < 50 * 60 -> 4
+  else -> 5
+}
+
+/** Share sheet with the VN's title and vndb.org link. */
+private fun shareVn(ctx: android.content.Context, v: Vn) {
+  val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+    type = "text/plain"
+    putExtra(android.content.Intent.EXTRA_SUBJECT, v.title)
+    putExtra(android.content.Intent.EXTRA_TEXT, "${v.title}\nhttps://vndb.org/${v.id}")
+  }
+  ctx.startActivity(android.content.Intent.createChooser(send, null))
 }

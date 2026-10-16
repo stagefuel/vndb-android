@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0
+- Start page: "Upcoming releases" and "Just released" rows (one cover per VN, editions grouped), each with a full list ("more ›") that has language and platform filters.
+- "random visual novel" link on the start page.
+- VN search filters: language, platform, length and release years; with filters set you can browse without typing a search.
+- VN pages: "share" sends the VN's title and vndb.org link to any app.
+- VN pages show the length category with the play time, e.g. "Long (33h07m from 203 votes)".
+
 ## 0.4.2 (review fixes)
 - Fixed a possible crash when the same entry came back on two pages of search results, your list, producer/tag/trait lists, or a staff member's voiced characters.
 - The list edit sheet always starts from the entry as it is now; re-editing an entry you just saved could silently not send the change.

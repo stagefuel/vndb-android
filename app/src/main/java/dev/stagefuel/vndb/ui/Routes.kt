@@ -10,6 +10,7 @@ object Routes {
   const val ITEM = "item/{id}"
   const val USER_LIST = "ulist/{uid}?name={name}"
   const val WEB = "web?url={url}"
+  const val FEED = "feed/{kind}"
 
   fun vn(id: String) = "vn/$id"
   fun item(id: String) = "item/$id"

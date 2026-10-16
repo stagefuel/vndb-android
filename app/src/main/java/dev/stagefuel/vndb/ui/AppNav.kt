@@ -67,6 +67,7 @@ class Nav(
   fun userList(uid: String, name: String) = nav.navigate(Routes.userList(uid, name))
   fun back() = nav.popBackStack()
   fun web(url: String) = nav.navigate(Routes.web(url))
+  fun feed(kind: String) = nav.navigate("feed/$kind")
   fun image(url: String) = images(listOf(ViewerImage(dev.stagefuel.vndb.api.Image(url = url), "")), 0)
   fun open(url: String) {
     if (Routes.isImage(url)) return image(url)
@@ -142,6 +143,9 @@ fun AppNav(app: VndbApp, prefs: Prefs, startUrl: String?, onStartUrlUsed: () -> 
         }
         composable(Routes.USER_LIST, arguments = listOf(navArgument("uid") { type = NavType.StringType }, navArgument("name") { type = NavType.StringType; nullable = true })) { e ->
           MyListScreen(app, prefs, n, e.arguments?.getString("uid"), e.arguments?.getString("name"))
+        }
+        composable(Routes.FEED, arguments = listOf(navArgument("kind") { type = NavType.StringType })) { e ->
+          dev.stagefuel.vndb.ui.feed.FeedScreen(app, prefs, n, e.arguments?.getString("kind").orEmpty())
         }
         composable(Routes.WEB, arguments = listOf(navArgument("url") { type = NavType.StringType })) { e ->
           WebScreen(e.arguments?.getString("url").orEmpty(), n)
