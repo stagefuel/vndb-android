@@ -354,3 +354,22 @@ data class QuoteRef(val id: String = "", val title: String? = null, val name: St
 
 @Serializable
 data class Quote(val id: String, val quote: String, val score: Int = 0, val vn: QuoteRef? = null, val character: QuoteRef? = null)
+
+/** A release's package/digital image (`release.images`): type is pkgfront, pkgback, pkgside, pkgmed, pkgcontent or dig. */
+@Serializable
+data class ReleaseImage(
+  val id: String,
+  val type: String = "",
+  val url: String? = null,
+  val dims: List<Int>? = null,
+  val sexual: Double = 0.0,
+  val violence: Double = 0.0,
+  val thumbnail: String? = null,
+  @SerialName("thumbnail_dims") val thumbnailDims: List<Int>? = null,
+  val photo: Boolean = false,
+) {
+  fun asImage() = Image(id = id, url = url, dims = dims, sexual = sexual, violence = violence, thumbnail = thumbnail, thumbnailDims = thumbnailDims)
+}
+
+@Serializable
+data class ReleaseImages(val id: String, val title: String = "", val released: String? = null, val images: List<ReleaseImage> = emptyList())

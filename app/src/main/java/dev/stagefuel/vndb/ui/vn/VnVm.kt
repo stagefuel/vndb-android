@@ -22,6 +22,15 @@ sealed interface Load<out T> {
 
 class VnVm(private val repo: VndbRepository, val id: String, private val voteSrc: VoteStatsSource? = null) : ViewModel() {
   var votes by mutableStateOf<Load<VoteStats?>>(Load.Idle); private set
+  var covers by mutableStateOf<Load<List<Pair<dev.stagefuel.vndb.api.ReleaseImages, dev.stagefuel.vndb.api.ReleaseImage>>>>(Load.Idle); private set
+
+  fun loadCovers() {
+    if (covers !is Load.Idle) return
+    viewModelScope.launch {
+      covers = Load.Loading
+      covers = runCatching { repo.releaseImages(id) }.fold({ Load.Done(it) }, { Load.Failed(it.message ?: "Failed") })
+    }
+  }
 
   fun loadVotes(force: Boolean = false) {
     val src = voteSrc ?: return

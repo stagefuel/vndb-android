@@ -32,6 +32,8 @@ object Fields {
   const val ULIST = "id,added,voted,lastmod,vote,started,finished,notes,labels.id,labels.label," +
     "vn.title,vn.alttitle,vn.released,vn.rating,vn.developers.name,vn.image.url,vn.image.sexual,vn.image.violence," +
     "releases.id,releases.list_status,releases.title"
+  const val RELEASE_IMAGES = "id,title,released,images.id,images.type,images.url,images.dims,images.sexual," +
+    "images.violence,images.thumbnail,images.thumbnail_dims,images.photo"
   const val QUOTE = "id,quote,score,vn.id,vn.title,character.id,character.name"
 }
 

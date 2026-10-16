@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.4
+- VN tabs (tags, releases, characters, staff) and the screenshots/relations part of the main tab sit inside a box like on the site, instead of on the plain background.
+- VN pages: "Covers & artwork" row with every release's front/back/side/media/contents/digital images, and a full-screen
+  viewer for the cover, artwork and screenshots (swipe between them, pinch or double-tap to zoom).
+- With bottom tabs, the search start page puts the title, statistics and quote just above the middle of the screen.
+
 ## 0.3.3
 - Me: thinner box borders, section headings above the boxes like the forum's board names.
 - "the visual novel database" header right-aligned on Search and Me, matching vndb.org pages.

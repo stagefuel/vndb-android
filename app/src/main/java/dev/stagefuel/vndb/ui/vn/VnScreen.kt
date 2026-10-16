@@ -27,6 +27,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -53,6 +54,10 @@ import dev.stagefuel.vndb.ui.common.Loading
 import dev.stagefuel.vndb.ui.common.Names
 import dev.stagefuel.vndb.ui.common.SectionHeader
 import dev.stagefuel.vndb.ui.common.VndbBox
+import dev.stagefuel.vndb.ui.common.boxed
+import dev.stagefuel.vndb.ui.common.ImageViewer
+import dev.stagefuel.vndb.ui.common.ViewerImage
+import androidx.compose.foundation.lazy.itemsIndexed
 import dev.stagefuel.vndb.ui.common.VndbTabs
 import dev.stagefuel.vndb.ui.common.LocalTabsBottom
 import dev.stagefuel.vndb.ui.common.WarningBox
@@ -76,12 +81,24 @@ fun VnScreen(app: VndbApp, prefs: Prefs, nav: Nav, id: String) {
       val v = st.value
       LaunchedEffect(tab) {
         when (TABS[tab]) {
-          "main" -> vm.loadVotes()
+          "main" -> { vm.loadVotes(); vm.loadCovers() }
           "releases" -> vm.loadReleases()
           "characters" -> vm.loadCharacters()
         }
       }
       val bottomTabs = LocalTabsBottom.current
+      // Everything the full-screen viewer can page through: main cover, release covers/artwork, screenshots.
+      val shots = v.screenshots.filter { s -> s.release?.languages.orEmpty().any { it.lang == v.olang } }.ifEmpty { v.screenshots }
+      val covers = (vm.covers as? Load.Done)?.value.orEmpty()
+      val coverStart = if (v.image?.url != null) 1 else 0
+      val shotStart = coverStart + covers.size
+      val gallery = buildList {
+        if (coverStart == 1) add(ViewerImage(v.image!!, "cover"))
+        covers.forEach { (rel, img) -> add(ViewerImage(img.asImage(), "${COVER_TYPES[img.type] ?: img.type} · ${rel.title}")) }
+        shots.forEach { sh -> add(ViewerImage(Image(url = sh.url, sexual = sh.sexual, violence = sh.violence, thumbnail = sh.thumbnail), "screenshot")) }
+      }
+      var viewing by remember { mutableStateOf<Int?>(null) }
+      viewing?.let { i -> ImageViewer(gallery, i, prefs) { viewing = null } }
       Column(Modifier.fillMaxSize()) {
       LazyColumn(Modifier.weight(1f), contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 16.dp)) {
         item {
@@ -92,13 +109,16 @@ fun VnScreen(app: VndbApp, prefs: Prefs, nav: Nav, id: String) {
         }
         when (TABS[tab]) {
           "main" -> {
-            mainTab(v, prefs, nav, signedIn = prefs.account != null, onEdit = { editing = true })
+            boxed {
+              mainTab(v, prefs, nav, signedIn = prefs.account != null, onEdit = { editing = true },
+                covers = covers, shots = shots, onView = { viewing = it }, coverStart = coverStart, shotStart = shotStart)
+            }
             item { VoteStatsBox(v.id, vm.votes, nav) { vm.loadVotes(force = true) } }
           }
-          "tags" -> item { TagsTab(v, prefs, nav) }
-          "releases" -> releasesTab(vm.releases, nav) { vm.loadReleases(force = true) }
-          "characters" -> charactersTab(v.id, vm.characters, prefs, nav) { vm.loadCharacters(force = true) }
-          "staff" -> staffTab(v, nav)
+          "tags" -> boxed { item { TagsTab(v, prefs, nav) } }
+          "releases" -> boxed { releasesTab(vm.releases, nav) { vm.loadReleases(force = true) } }
+          "characters" -> boxed { charactersTab(v.id, vm.characters, prefs, nav) { vm.loadCharacters(force = true) } }
+          "staff" -> boxed { staffTab(v, nav) }
         }
       }
       if (bottomTabs) VndbTabs(TABS, tab) { tab = it }
@@ -108,11 +128,18 @@ fun VnScreen(app: VndbApp, prefs: Prefs, nav: Nav, id: String) {
   }
 }
 
-private fun LazyListScope.mainTab(v: Vn, prefs: Prefs, nav: Nav, signedIn: Boolean, onEdit: () -> Unit) {
+private val COVER_TYPES = mapOf("pkgfront" to "front", "pkgback" to "back", "pkgside" to "side", "pkgmed" to "media",
+  "pkgcontent" to "contents", "dig" to "digital")
+
+private fun LazyListScope.mainTab(
+  v: Vn, prefs: Prefs, nav: Nav, signedIn: Boolean, onEdit: () -> Unit,
+  covers: List<Pair<dev.stagefuel.vndb.api.ReleaseImages, dev.stagefuel.vndb.api.ReleaseImage>>,
+  shots: List<dev.stagefuel.vndb.api.Screenshot>, onView: (Int) -> Unit, coverStart: Int, shotStart: Int,
+) {
   item {
-    VndbBox(Modifier.padding(horizontal = 6.dp)) {
+    Column(Modifier.padding(horizontal = 4.dp)) {
       Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-        GatedImage(v.image, prefs, Modifier.widthIn(max = 250.dp).height(320.dp))
+        GatedImage(v.image, prefs, Modifier.widthIn(max = 250.dp).height(320.dp).clickable(enabled = coverStart == 1) { onView(0) })
       }
       Spacer(Modifier.height(8.dp))
       InfoTable(v, nav)
@@ -127,13 +154,23 @@ private fun LazyListScope.mainTab(v: Vn, prefs: Prefs, nav: Nav, signedIn: Boole
       }
     }
   }
-  val shots = v.screenshots.filter { s -> s.release?.languages.orEmpty().any { it.lang == v.olang } }.ifEmpty { v.screenshots }
+  if (covers.isNotEmpty()) item {
+    SectionHeader("Covers & artwork", Modifier.padding(horizontal = 8.dp))
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp)) {
+      itemsIndexed(covers, key = { _, c -> c.second.id }) { i, (_, img) ->
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+          GatedImage(img.asImage(), prefs, Modifier.size(105.dp, 150.dp).clickable { onView(coverStart + i) }, thumb = true)
+          Grey(COVER_TYPES[img.type] ?: img.type)
+        }
+      }
+    }
+  }
   if (shots.isNotEmpty()) item {
     SectionHeader("Screenshots", Modifier.padding(horizontal = 8.dp))
     LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp)) {
-      items(shots, key = { it.url }) { s ->
+      itemsIndexed(shots, key = { _, sh -> sh.url }) { i, s ->
         val img = Image(url = s.url, sexual = s.sexual, violence = s.violence, thumbnail = s.thumbnail)
-        GatedImage(img, prefs, Modifier.size(200.dp, 150.dp).clickable { nav.open(s.url) }, thumb = true)
+        GatedImage(img, prefs, Modifier.size(200.dp, 150.dp).clickable { onView(shotStart + i) }, thumb = true)
       }
     }
   }

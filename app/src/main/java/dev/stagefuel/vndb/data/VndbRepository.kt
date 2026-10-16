@@ -4,6 +4,8 @@ import dev.stagefuel.vndb.api.Character
 import dev.stagefuel.vndb.api.CharacterFull
 import dev.stagefuel.vndb.api.Producer
 import dev.stagefuel.vndb.api.Quote
+import dev.stagefuel.vndb.api.ReleaseImage
+import dev.stagefuel.vndb.api.ReleaseImages
 import dev.stagefuel.vndb.api.ReleaseFull
 import dev.stagefuel.vndb.api.Staff
 import dev.stagefuel.vndb.api.Stats
@@ -57,6 +59,17 @@ class VndbRepository(private val api: KanaClient) {
 
   suspend fun releases(vnId: String): List<Release> = pages { page ->
     api.query("release", Query(filters = Filters.vn(vnId), fields = Fields.RELEASE, sort = "released", results = 100, page = page), Release.serializer())
+  }
+
+  /** Covers and other package art from every release of the VN, front covers first, one entry per image. */
+  suspend fun releaseImages(vnId: String): List<Pair<ReleaseImages, ReleaseImage>> {
+    val rels = pages(3) { page ->
+      api.query("release", Query(filters = Filters.vn(vnId), fields = Fields.RELEASE_IMAGES, sort = "released", results = 100, page = page), ReleaseImages.serializer())
+    }
+    val order = listOf("pkgfront", "dig", "pkgback", "pkgcontent", "pkgside", "pkgmed")
+    return rels.flatMap { r -> r.images.map { r to it } }
+      .distinctBy { it.second.id }
+      .sortedBy { order.indexOf(it.second.type).let { i -> if (i < 0) order.size else i } }
   }
 
   suspend fun characters(vnId: String): List<Character> = pages { page ->
