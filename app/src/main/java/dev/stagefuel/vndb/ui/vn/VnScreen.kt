@@ -147,7 +147,7 @@ private fun LazyListScope.mainTab(
 ) {
   item {
     Column(Modifier.padding(horizontal = 4.dp)) {
-      Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+      if (coverStart == 1) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
         GatedImage(v.image, prefs, Modifier.widthIn(max = 250.dp).height(320.dp).clickable(enabled = coverStart == 1) { onView(0) })
       }
       Spacer(Modifier.height(8.dp))
@@ -187,7 +187,7 @@ private fun LazyListScope.mainTab(
   if (v.relations.isNotEmpty()) item {
     Column(Modifier.padding(horizontal = 8.dp)) {
       SectionHeader("Relations")
-      v.relations.groupBy { it.relation }.toSortedMap(compareBy { Names.relationOrder.indexOf(it) }).forEach { (rel, list) ->
+      v.relations.groupBy { it.relation }.toSortedMap(compareBy<String> { Names.relationOrder.indexOf(it).let { i -> if (i < 0) 99 else i } }.thenBy { it }).forEach { (rel, list) ->
         Text(Names.relations[rel] ?: rel, style = VndbType.body, color = LocalSkin.current.mainText, modifier = Modifier.padding(top = 4.dp))
         list.forEach { r ->
           Row(Modifier.padding(start = 12.dp)) {
@@ -377,7 +377,7 @@ private fun LazyListScope.staffTab(v: Vn, nav: Nav) {
 }
 
 private fun LazyListScope.staffRoles(staff: List<dev.stagefuel.vndb.api.VnStaff>, keyPrefix: String, nav: Nav) {
-  staff.groupBy { it.role }.toSortedMap(compareBy { Names.staffRoleOrder.indexOf(it).let { i -> if (i < 0) 99 else i } }).forEach { (role, list) ->
+  staff.groupBy { it.role }.toSortedMap(compareBy<String> { Names.staffRoleOrder.indexOf(it).let { i -> if (i < 0) 99 else i } }.thenBy { it }).forEach { (role, list) ->
     item(key = "staff-$keyPrefix-$role") {
       Column(Modifier.padding(horizontal = 8.dp)) {
         SectionHeader(Names.staffRoles[role] ?: role)

@@ -25,7 +25,7 @@ class MainActivity : ComponentActivity() {
     if (savedInstanceState == null) deepLink.value = intent?.data?.toString()
     setContent {
       val prefs by app.settings.prefs.collectAsStateWithLifecycle(initialValue = Prefs())
-      VndbTheme(prefs.skin) {
+      VndbTheme(VndbApp.testSkin ?: prefs.skin) {
         androidx.compose.runtime.CompositionLocalProvider(dev.stagefuel.vndb.ui.common.LocalTabsBottom provides prefs.tabsBottom) {
         AppNav(app, prefs, startUrl = deepLink.value, onStartUrlUsed = { deepLink.value = null }, openExternal = ::openExternal)
         }

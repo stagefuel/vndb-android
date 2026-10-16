@@ -85,7 +85,7 @@ class MyListVm(private val repo: VndbRepository, val uid: String) : ViewModel() 
     job = viewModelScope.launch {
       loading = true; error = null
       runCatching { repo.ulist(uid, label, sort, reverse, page) }
-        .onSuccess { r -> entries = if (reset) r.results else entries + r.results; more = r.more }
+        .onSuccess { r -> entries = if (reset) r.results else (entries + r.results).distinctBy { it.id }; more = r.more }
         .onFailure { error = it.message ?: "Failed to load list" }
       loading = false
     }
@@ -100,7 +100,7 @@ fun MyListScreen(app: VndbApp, prefs: Prefs, nav: Nav, uid: String? = null, name
   val editable = account != null && account.id == own?.id
   if (account == null) {
     Column(Modifier.padding(16.dp)) {
-      Text("Add a VNDB API token in Settings to see and edit your list.", style = VndbType.body, color = LocalSkin.current.mainText)
+      Text("Add a VNDB API token on the Me tab to see and edit your list.", style = VndbType.body, color = LocalSkin.current.mainText)
     }
     return
   }
@@ -164,7 +164,7 @@ private fun EntryRow(e: UlistEntry, prefs: Prefs, onOpen: () -> Unit, onEdit: ((
         Grey(e.labels.filter { it.id != 7 }.joinToString(", ") { it.label })
         val dates = listOfNotNull(e.started?.let { "started $it" }, e.finished?.let { "finished $it" }).joinToString(" · ")
         if (dates.isNotEmpty()) Grey(dates)
-        e.notes?.takeIf { it.isNotBlank() }?.let { Grey(it, style = VndbType.small) }
+        e.notes?.takeIf { it.isNotBlank() }?.let { Text(it, style = VndbType.small, color = skin.grayedOut, maxLines = 3, overflow = TextOverflow.Ellipsis) }
       }
       Column(horizontalAlignment = Alignment.End) {
         Text(formatVote(e.vote), style = VndbType.boxH1, color = if (e.vote != null) skin.standout else skin.grayedOut)

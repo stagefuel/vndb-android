@@ -20,7 +20,7 @@ class LoaderVm<T>(private val fetch: suspend () -> T) : ViewModel() {
 }
 
 /** Paged list (Kana `page`/`more`), loaded on demand. */
-class PagedVm<T>(private val fetch: suspend (Int) -> QueryResult<T>) : ViewModel() {
+class PagedVm<T>(private val key: (T) -> Any = { it as Any }, private val fetch: suspend (Int) -> QueryResult<T>) : ViewModel() {
   var items by mutableStateOf<List<T>>(emptyList()); private set
   var loading by mutableStateOf(false); private set
   var more by mutableStateOf(true); private set
@@ -32,7 +32,7 @@ class PagedVm<T>(private val fetch: suspend (Int) -> QueryResult<T>) : ViewModel
     loading = true
     viewModelScope.launch {
       runCatching { fetch(page + 1) }
-        .onSuccess { r -> page++; items = items + r.results; more = r.more; error = null }
+        .onSuccess { r -> page++; items = (items + r.results).distinctBy(key); more = r.more; error = null }
         .onFailure { error = it.message ?: "Failed to load" }
       loading = false
     }

@@ -12,14 +12,23 @@ object Names {
     "no" to "Norwegian", "el" to "Greek", "he" to "Hebrew", "ro" to "Romanian", "ca" to "Catalan",
     "ms" to "Malay", "tl" to "Tagalog", "fa" to "Persian", "bg" to "Bulgarian", "hr" to "Croatian",
     "lt" to "Lithuanian", "lv" to "Latvian", "sk" to "Slovak", "sl" to "Slovene", "ta" to "Tamil",
-    "hi" to "Hindi", "eo" to "Esperanto", "la" to "Latin",
+    "hi" to "Hindi", "eo" to "Esperanto", "la" to "Latin", "eu" to "Basque", "be" to "Belarusian",
+    "bs" to "Bosnian", "ck" to "Cherokee", "et" to "Estonian", "gl" to "Galician", "ga" to "Irish",
+    "iu" to "Inuktitut", "kk" to "Kazakh", "mk" to "Macedonian", "ne" to "Nepali", "gd" to "Scottish Gaelic",
+    "sr" to "Serbian", "ur" to "Urdu",
+  )
+  /** Release media (Kana `medium` enum). */
+  val media = mapOf(
+    "blr" to "Blu-ray disc", "mrt" to "Cartridge", "cas" to "Cassette tape", "cd" to "CD", "dc" to "Download card",
+    "dvd" to "DVD", "flp" to "Floppy", "gdr" to "GD-ROM", "in" to "Internet download", "mem" to "Memory card",
+    "nod" to "Nintendo optical disc", "umd" to "UMD", "otc" to "Other",
   )
   val platforms = mapOf(
     "win" to "Windows", "lin" to "Linux", "mac" to "Mac OS", "web" to "Website", "and" to "Android",
-    "ios" to "iOS", "swi" to "Nintendo Switch", "ps4" to "PlayStation 4", "ps5" to "PlayStation 5",
+    "ios" to "iOS", "swi" to "Nintendo Switch", "sw2" to "Nintendo Switch 2", "ps4" to "PlayStation 4", "ps5" to "PlayStation 5",
     "psv" to "PlayStation Vita", "psp" to "PlayStation Portable", "ps3" to "PlayStation 3",
     "ps2" to "PlayStation 2", "ps1" to "PlayStation", "xb1" to "Xbox One", "xxs" to "Xbox X/S",
-    "x36" to "Xbox 360", "xbo" to "Xbox", "n3d" to "Nintendo 3DS", "nds" to "Nintendo DS",
+    "xb3" to "Xbox 360", "xbo" to "Xbox", "n3d" to "Nintendo 3DS", "nds" to "Nintendo DS",
     "wii" to "Nintendo Wii", "wiu" to "Wii U", "dvd" to "DVD player", "dos" to "DOS", "sat" to "Sega Saturn",
     "drc" to "Dreamcast", "pce" to "PC Engine", "pcf" to "PC-FX", "p98" to "PC-98", "p88" to "PC-88",
     "x68" to "X68000", "fmt" to "FM Towns", "msx" to "MSX", "mob" to "Other mobile", "vnd" to "VNDS", "bdp" to "Blu-ray player", "gba" to "Game Boy Advance", "gbc" to "Game Boy Color", "smd" to "Sega Mega Drive", "scd" to "Sega Mega-CD", "sfc" to "Super Famicom", "nes" to "Famicom", "tdo" to "3DO", "fm7" to "FM-7", "fm8" to "FM-8", "x1s" to "Sharp X1", "pc6" to "PC-6001", "mtx" to "MTX", "oth" to "Other",

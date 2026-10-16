@@ -20,6 +20,8 @@ class VndbApp : Application(), SingletonImageLoader.Factory {
     @JvmStatic var checkUpdates = true
     /** vndb.org itself, for the few things the API lacks (vote stats). Tests point it at a fixture server. */
     @JvmStatic var siteBase = "https://vndb.org"
+    /** Screenshot tests force a skin with this; null = the user's setting. */
+    @JvmStatic var testSkin: String? = null
   }
 
   val http: OkHttpClient by lazy {

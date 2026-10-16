@@ -87,6 +87,9 @@ fun AppNav(app: VndbApp, prefs: Prefs, startUrl: String?, onStartUrlUsed: () -> 
   LaunchedEffect(startUrl) { startUrl?.let { n.open(it); onStartUrlUsed() } }
   // The tab whose stack is showing, so it stays highlighted on its sub-pages and a second tap returns to its top.
   var activeTab by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(Routes.SEARCH) }
+  // System back can land on another tab's page (e.g. Me → back → Search): follow it.
+  val route = nav.currentBackStackEntryAsState().value?.destination?.route
+  LaunchedEffect(route) { if (route != null && tabs.any { it.route == route }) activeTab = route }
   val updates = viewModel { UpdateVm(app.updater, app.settings) }
   LaunchedEffect(Unit) { if (VndbApp.checkUpdates) updates.check(manual = false) }
   UpdateDialog(updates)

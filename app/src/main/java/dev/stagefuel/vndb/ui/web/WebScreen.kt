@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.mutableStateOf
@@ -41,6 +43,9 @@ fun WebScreen(url: String, nav: Nav) {
   var loading by remember { mutableStateOf(true) }
   var canGoBack by remember { mutableStateOf(false) }
   var view by remember { mutableStateOf<WebView?>(null) }
+  // Survives leaving the screen (tab switches, opening a native page): the page and its history come back.
+  val saved = rememberSaveable(url) { android.os.Bundle() }
+  DisposableEffect(Unit) { onDispose { view?.saveState(saved) } }
   val bottomTabs by rememberUpdatedState(LocalTabsBottom.current)
   val bodyBg by rememberUpdatedState(skin.bodyBg)
   val skinId by rememberUpdatedState(skin.id)
@@ -49,15 +54,15 @@ fun WebScreen(url: String, nav: Nav) {
 
   BackHandler(enabled = canGoBack) { view?.goBack() }
 
-  Column(Modifier.fillMaxSize().background(skin.bodyBg)) {
-    if (loading) LinearProgressIndicator(Modifier.fillMaxWidth(), color = skin.link, trackColor = skin.tabBg)
+  // The progress bar overlays the page instead of pushing it down while loading.
+  androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().background(skin.bodyBg)) {
     AndroidView(
       modifier = Modifier.fillMaxSize(),
       factory = { ctx ->
         WebView(ctx).apply {
           settings.javaScriptEnabled = true
           settings.domStorageEnabled = true
-          setBackgroundColor(android.graphics.Color.BLACK)
+          setBackgroundColor(skin.bodyBg.toArgb())
           CookieManager.getInstance().setAcceptCookie(true)
           webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(v: WebView, req: WebResourceRequest): Boolean {
@@ -76,11 +81,12 @@ fun WebScreen(url: String, nav: Nav) {
               CookieManager.getInstance().flush()
             }
           }
-          loadUrl(url)
+          if (saved.isEmpty || restoreState(saved) == null) loadUrl(url)
           view = this
         }
       },
     )
+    if (loading) LinearProgressIndicator(Modifier.fillMaxWidth(), color = skin.link, trackColor = skin.tabBg)
   }
 }
 

@@ -30,7 +30,7 @@ import dev.stagefuel.vndb.ui.theme.VndbType
 @Composable
 fun BbText(src: String?, modifier: Modifier = Modifier, style: TextStyle = VndbType.body, showSpoilers: Boolean = false, onLink: (String) -> Unit) {
   val skin = LocalSkin.current
-  var revealed by remember(src) { mutableStateOf(showSpoilers) }
+  var revealed by remember(src, showSpoilers) { mutableStateOf(showSpoilers) }
   val text = remember(src, revealed, skin) { annotate(src, skin, revealed, onLink) { revealed = true } }
   BasicText(text, modifier = modifier, style = style.copy(color = skin.mainText))
 }

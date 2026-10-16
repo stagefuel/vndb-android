@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.2 (review fixes)
+- Fixed a possible crash when the same entry came back on two pages of search results, your list, producer/tag/trait lists, or a staff member's voiced characters.
+- The list edit sheet always starts from the entry as it is now; re-editing an entry you just saved could silently not send the change.
+- The spoiler switch now also reveals/hides spoilers in descriptions.
+- Staff roles and relation types can no longer collapse into one group when VNDB adds a new one.
+- Platform, language and release media names are complete (Xbox 360, Switch 2, 14 more languages, CD/DVD/download…).
+- Character, staff, producer, tag, trait and release pages keep all their content in one box (no bare black sections).
+- Search: clearing the box and searching goes back to the start page; switching "find:" with an empty box no longer leaves old results; the keyboard closes on search; loading indicator for every result type; quote attribution centred.
+- Forums and other site pages keep their place when you switch tabs; the loading bar no longer pushes the page; no black flash on light skins.
+- The highlighted tab follows the back button.
+- Smaller fixes: language names in the edit sheet's release list, long list notes capped at 3 lines, "Me tab" wording, the token hint wraps properly on narrow phones, no empty "no image" block for entries without a picture.
+
 ## 0.4.1
 - Character, release and other database pages (and VN pages) link to the entry's edit history and edit form on vndb.org.
 - The search start page sits just above the middle with top tabs too, search box included.

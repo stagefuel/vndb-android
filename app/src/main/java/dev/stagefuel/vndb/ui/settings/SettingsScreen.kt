@@ -95,7 +95,9 @@ fun SettingsScreen(app: VndbApp, prefs: Prefs, nav: Nav, updates: dev.stagefuel.
         LinkText("Sign out") { scope.launch { app.settings.signOut() } }
       } else {
         Text("Paste an API token to see and edit your list.", style = VndbType.body, color = skin.mainText)
-        Row {
+        // One flowing line: a Row made the last part wrap into its own narrow column on small phones.
+        @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+        androidx.compose.foundation.layout.FlowRow {
           Grey("Make one at ", style = VndbType.body)
           LinkText("vndb.org/u/tokens") { nav.web("https://vndb.org/u/tokens") }
           Grey(" with listread + listwrite.", style = VndbType.body)

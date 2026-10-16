@@ -56,6 +56,7 @@ import dev.stagefuel.vndb.ui.common.Names
 import dev.stagefuel.vndb.ui.common.SectionHeader
 import dev.stagefuel.vndb.ui.common.VndbBox
 import dev.stagefuel.vndb.ui.common.VndbTabs
+import dev.stagefuel.vndb.ui.common.boxed
 import dev.stagefuel.vndb.ui.common.LocalTabsBottom
 import dev.stagefuel.vndb.ui.common.WarningBox
 import dev.stagefuel.vndb.ui.search.VnRow
@@ -93,13 +94,16 @@ private fun Page(id: String, title: String, alt: String?, nav: Nav, bottomBar: (
   Column(Modifier.fillMaxSize()) {
     LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = 16.dp)) {
       item { Column(Modifier.padding(10.dp)) { BoxTitle(title, alt) } }
-      body()
-      item {
-        // No API for edits or revisions: these open the site's own pages in the app.
-        Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-          LinkText("history") { nav.web("https://vndb.org/$id/hist") }
-          LinkText("edit") { nav.web("https://vndb.org/$id/edit") }
-          LinkText("open on vndb.org") { nav.web("https://vndb.org/$id") }
+      // Everything under the title sits in one box, like the site's article (no bare black sections).
+      boxed {
+        body()
+        item {
+          // No API for edits or revisions: these open the site's own pages in the app.
+          Row(Modifier.padding(8.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            LinkText("history") { nav.web("https://vndb.org/$id/hist") }
+            LinkText("edit") { nav.web("https://vndb.org/$id/edit") }
+            LinkText("open on vndb.org") { nav.web("https://vndb.org/$id") }
+          }
         }
       }
     }
@@ -156,9 +160,10 @@ private fun CharacterPage(c: CharacterFull, basePrefs: Prefs, nav: Nav) {
   val prefs = basePrefs.copy(spoilers = spoil)
   Page(c.id, c.name, c.original, nav) {
     item {
-      VndbBox(Modifier.padding(horizontal = 6.dp)) {
+      Column(Modifier.padding(horizontal = 4.dp, vertical = 4.dp)) {
         dev.stagefuel.vndb.ui.common.SpoilerSwitch(spoil) { spoil = it }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+        // No picture → no 300dp "no image" block.
+        if (c.image?.url != null) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
           GatedImage(c.image, prefs, Modifier.widthIn(max = 256.dp).height(300.dp).clickable(enabled = c.image?.url != null) {
             c.image?.let { nav.images(listOf(dev.stagefuel.vndb.ui.common.ViewerImage(it, c.name)), 0) }
           })
@@ -228,7 +233,7 @@ private fun StaffPage(app: VndbApp, s: Staff, prefs: Prefs, nav: Nav) {
   val tabs = @Composable { VndbTabs(listOf("credits", "voiced"), tab) { tab = it } }
   Page(s.id, s.name, s.original, nav, bottomBar = if (bottomTabs) tabs else null) {
     item {
-      VndbBox(Modifier.padding(horizontal = 6.dp)) {
+      Column(Modifier.padding(horizontal = 4.dp, vertical = 4.dp)) {
         val others = s.aliases.filter { !it.ismain }
         Table(buildList {
           if (others.isNotEmpty()) add("Aliases" to { T(others.joinToString(", ") { a -> a.latin?.let { "$it (${a.name})" } ?: a.name }) })
@@ -266,7 +271,7 @@ private fun LazyListScope.creditsList(list: List<VnCredit>, nav: Nav) {
 }
 
 private fun LazyListScope.voicedList(list: List<Character>, prefs: Prefs, nav: Nav) {
-  val rows = list.flatMap { c -> c.vns.filter { it.spoiler <= prefs.spoilers }.map { c to it } }
+  val rows = list.flatMap { c -> c.vns.filter { it.spoiler <= prefs.spoilers }.distinctBy { it.id }.map { c to it } }
   if (rows.isEmpty()) item { Grey("No voiced characters.", Modifier.padding(12.dp), VndbType.body) }
   items(rows, key = { (c, v) -> "va-${c.id}-${v.id}" }) { (c, v) ->
     Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 3.dp)) {
@@ -282,10 +287,10 @@ private val PRODUCER_TYPE = mapOf("co" to "Company", "in" to "Individual", "ng" 
 
 @Composable
 private fun ProducerPage(app: VndbApp, p: Producer, prefs: Prefs, nav: Nav) {
-  val vns = viewModel(key = "pvns-${p.id}") { PagedVm { page -> app.repo.producerVns(p.id, page) } }
+  val vns = viewModel(key = "pvns-${p.id}") { PagedVm({ it.id }) { page -> app.repo.producerVns(p.id, page) } }
   Page(p.id, p.name, p.original, nav) {
     item {
-      VndbBox(Modifier.padding(horizontal = 6.dp)) {
+      Column(Modifier.padding(horizontal = 4.dp, vertical = 4.dp)) {
         Table(buildList {
           p.type?.let { add("Type" to { T(PRODUCER_TYPE[it] ?: it) }) }
           p.lang?.let { add("Language" to { T(Names.lang(it)) }) }
@@ -302,10 +307,10 @@ private fun ProducerPage(app: VndbApp, p: Producer, prefs: Prefs, nav: Nav) {
 
 @Composable
 private fun TagPage(app: VndbApp, t: Tag, prefs: Prefs, nav: Nav) {
-  val vns = viewModel(key = "gvns-${t.id}") { PagedVm { page -> app.repo.tagVns(t.id, page) } }
+  val vns = viewModel(key = "gvns-${t.id}") { PagedVm({ it.id }) { page -> app.repo.tagVns(t.id, page) } }
   Page(t.id, t.name, null, nav) {
     item {
-      VndbBox(Modifier.padding(horizontal = 6.dp)) {
+      Column(Modifier.padding(horizontal = 4.dp, vertical = 4.dp)) {
         Table(buildList {
           add("Category" to { T(Names.tagCats[t.category] ?: t.category) })
           if (t.aliases.isNotEmpty()) add("Aliases" to { T(t.aliases.joinToString(", ")) })
@@ -321,10 +326,10 @@ private fun TagPage(app: VndbApp, t: Tag, prefs: Prefs, nav: Nav) {
 
 @Composable
 private fun TraitPage(app: VndbApp, t: Trait, prefs: Prefs, nav: Nav) {
-  val chars = viewModel(key = "ichars-${t.id}") { PagedVm { page -> app.repo.traitChars(t.id, page) } }
+  val chars = viewModel(key = "ichars-${t.id}") { PagedVm({ it.id }) { page -> app.repo.traitChars(t.id, page) } }
   Page(t.id, t.name, t.groupName, nav) {
     item {
-      VndbBox(Modifier.padding(horizontal = 6.dp)) {
+      Column(Modifier.padding(horizontal = 4.dp, vertical = 4.dp)) {
         Table(buildList {
           t.groupId?.let { gid -> add("Group" to { LinkText(t.groupName ?: gid) { nav.item(gid) } }) }
           if (t.aliases.isNotEmpty()) add("Aliases" to { T(t.aliases.joinToString(", ")) })
@@ -361,7 +366,7 @@ private fun TraitPage(app: VndbApp, t: Trait, prefs: Prefs, nav: Nav) {
 private fun ReleasePage(r: ReleaseFull, nav: Nav) {
   Page(r.id, r.title, r.alttitle, nav) {
     item {
-      VndbBox(Modifier.padding(horizontal = 6.dp)) {
+      Column(Modifier.padding(horizontal = 4.dp, vertical = 4.dp)) {
         Table(buildList {
           if (r.vns.isNotEmpty()) add("Visual novel" to {
             Column { r.vns.forEach { v -> LinkText(v.title ?: v.id) { nav.vn(v.id) } } }
@@ -369,7 +374,7 @@ private fun ReleasePage(r: ReleaseFull, nav: Nav) {
           add("Type" to { T(listOfNotNull(r.vns.firstOrNull()?.rtype, if (r.patch) "patch" else null, if (!r.official) "unofficial" else null).joinToString(", ")) })
           if (r.languages.isNotEmpty()) add("Language" to { T(r.languages.joinToString(", ") { Names.lang(it.lang) + if (it.mtl) " (machine translation)" else "" }) })
           if (r.platforms.isNotEmpty()) add("Platform" to { T(r.platforms.joinToString(", ") { Names.platform(it) }) })
-          if (r.media.isNotEmpty()) add("Media" to { T(r.media.joinToString(", ") { m -> (if (m.qty > 1) "${m.qty} " else "") + m.medium }) })
+          if (r.media.isNotEmpty()) add("Media" to { T(r.media.joinToString(", ") { m -> (if (m.qty > 1) "${m.qty}× " else "") + (Names.media[m.medium] ?: m.medium) }) })
           add("Released" to { T(r.released ?: "TBA") })
           r.minage?.let { add("Age rating" to { T(if (it == 0) "All ages" else "$it+") }) }
           add("Publication" to { T((if (r.freeware) "Freeware" else "Non-free") + ", " + if (r.hasEro) "contains erotic scenes" else "no erotic scenes") })

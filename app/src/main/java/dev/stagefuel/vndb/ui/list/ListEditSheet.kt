@@ -81,8 +81,7 @@ class ListEditVm(private val repo: VndbRepository, private val uid: String, val 
   var finished by mutableStateOf("")
   var notes by mutableStateOf("")
 
-  init { load() }
-
+  // Loaded by the sheet each time it opens (the VM outlives the sheet), so it never edits a stale entry.
   fun load() = viewModelScope.launch {
     loading = true; error = null
     runCatching {
@@ -139,6 +138,7 @@ fun ListEditSheet(app: VndbApp, vnId: String, title: String, onDismiss: () -> Un
   val vm = viewModel(key = "edit-$vnId-${account.id}") { ListEditVm(app.repo, account.id, vnId) }
   val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
   val close = { onSaved(); onDismiss() }
+  androidx.compose.runtime.LaunchedEffect(Unit) { vm.load() }
 
   ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheet, containerColor = skin.solidBox) {
     Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
@@ -211,7 +211,7 @@ private fun ReleaseStatusRow(r: Release, status: Int?, onSet: (Int?) -> Unit) {
   Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
     Column(Modifier.weight(1f)) {
       Text(r.title, style = VndbType.body, color = skin.mainText)
-      Grey(listOfNotNull(r.released, r.languages.joinToString(", ") { it.lang }).joinToString(" · "))
+      Grey(listOfNotNull(r.released, r.languages.joinToString(", ") { Names.lang(it.lang) }).joinToString(" · "))
     }
     Column {
       Text(

@@ -81,9 +81,15 @@ class SearchVm(private val repo: VndbRepository) : ViewModel() {
   /** A blank query browses the whole database in the chosen order (relevance falls back to rating). */
   fun search() {
     val q = query.trim()
-    if (q.isEmpty() && (sort == 0 || type != "vn")) return
+    // Nothing to search for (blank box, relevance sort or a non-VN type): back to the start page.
+    if (q.isEmpty() && (sort == 0 || type != "vn")) { reset(); return }
     page = 1
     load(q, reset = true)
+  }
+
+  fun reset() {
+    job?.cancel()
+    results = emptyList(); hits = emptyList(); more = false; searched = false; error = null; loading = false
   }
 
   fun loadMore() {
@@ -99,11 +105,11 @@ class SearchVm(private val repo: VndbRepository) : ViewModel() {
       if (type == "vn") {
         val (key, _, rev) = SEARCH_SORTS[sort]
         runCatching { repo.browseVns(q, key, rev, page) }
-          .onSuccess { r -> hits = emptyList(); results = if (reset) r.results else results + r.results; more = r.more; searched = true }
+          .onSuccess { r -> hits = emptyList(); results = if (reset) r.results else (results + r.results).distinctBy { it.id }; more = r.more; searched = true }
           .onFailure { error = it.message ?: "Search failed" }
       } else {
         runCatching { repo.searchOther(type, q, page) }
-          .onSuccess { r -> results = emptyList(); hits = if (reset) r.results else hits + r.results; more = r.more; searched = true }
+          .onSuccess { r -> results = emptyList(); hits = if (reset) r.results else (hits + r.results).distinctBy { dev.stagefuel.vndb.data.SearchTypes.id(it) }; more = r.more; searched = true }
           .onFailure { error = it.message ?: "Search failed" }
       }
       loading = false
@@ -117,6 +123,7 @@ fun SearchScreen(app: VndbApp, prefs: Prefs, nav: Nav) {
   val skin = LocalSkin.current
   val bottom = dev.stagefuel.vndb.ui.common.LocalTabsBottom.current
   // With "Tabs: bottom" the search box and sort row sit at the bottom, above the nav bar.
+  val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
   val searchBar = @Composable {
     BasicTextField(
       value = vm.query,
@@ -125,7 +132,7 @@ fun SearchScreen(app: VndbApp, prefs: Prefs, nav: Nav) {
       textStyle = VndbType.body.copy(color = skin.mainText),
       cursorBrush = SolidColor(skin.mainText),
       keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-      keyboardActions = KeyboardActions(onSearch = { vm.search() }),
+      keyboardActions = KeyboardActions(onSearch = { keyboard?.hide(); vm.search() }),
       modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp).border(1.dp, skin.secBorder).padding(8.dp),
       decorationBox = { inner ->
         if (vm.query.isEmpty()) Grey("search", style = VndbType.body)
@@ -188,7 +195,7 @@ fun SearchScreen(app: VndbApp, prefs: Prefs, nav: Nav) {
         if (i >= vm.hits.size - 5) LaunchedEffect(vm.hits.size) { vm.loadMore() }
         HitRow(h, vm.type) { nav.item(dev.stagefuel.vndb.data.SearchTypes.id(h)) }
       }
-      if (vm.loading && vm.results.isNotEmpty()) item { Loading() }
+      if (vm.loading && !vm.empty) item { Loading() }
       if (vm.more && !vm.loading) item { LinkText("next ›", Modifier.padding(12.dp)) { vm.loadMore() } }
     }
     if (bottom) Column(Modifier.padding(bottom = 6.dp)) { sortRow(); searchBar() }
@@ -235,7 +242,8 @@ private fun QuoteLine(q: dev.stagefuel.vndb.api.Quote, onClick: () -> Unit) {
   Column(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 6.dp)) {
     Text("\u201C${q.quote}\u201D", style = VndbType.small, color = skin.link, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.fillMaxWidth())
     val by = listOfNotNull(q.character?.name, q.vn?.title).joinToString(", ")
-    if (by.isNotEmpty()) Grey("\u2014 $by", Modifier.fillMaxWidth(), VndbType.small)
+    if (by.isNotEmpty()) Text("\u2014 $by", style = VndbType.small, color = skin.grayedOut,
+      textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.fillMaxWidth())
   }
 }
 
