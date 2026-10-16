@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0
+- Search finds releases, producers, characters, staff, tags and traits too (pick under the search box).
+- VN characters tab lists each character's voice actors.
+- VN staff tab is grouped by edition (original, then Realta Nua, Remastered…), like the site.
+- VN pages show the VN's top quotes.
+- Cover/artwork captions in the image viewer name the image's language when it's language-specific.
+
 ## 0.3.6
 - Fixed headings overlapping the cover/screenshot rows on VN pages.
 - Spoiler switch (hide / minor / spoil me!) on VN pages (main, tags, characters) and character pages, starting from your setting.

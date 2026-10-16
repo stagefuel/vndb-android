@@ -85,7 +85,7 @@ fun VnScreen(app: VndbApp, basePrefs: Prefs, nav: Nav, id: String) {
       val v = st.value
       LaunchedEffect(tab) {
         when (TABS[tab]) {
-          "main" -> { vm.loadVotes(); vm.loadCovers() }
+          "main" -> { vm.loadVotes(); vm.loadCovers(); vm.loadQuotes() }
           "releases" -> vm.loadReleases()
           "characters" -> vm.loadCharacters()
         }
@@ -98,7 +98,10 @@ fun VnScreen(app: VndbApp, basePrefs: Prefs, nav: Nav, id: String) {
       val shotStart = coverStart + covers.size
       val gallery = buildList {
         if (coverStart == 1) add(ViewerImage(v.image!!, "cover"))
-        covers.forEach { (rel, img) -> add(ViewerImage(img.asImage(), "${COVER_TYPES[img.type] ?: img.type} · ${rel.title}")) }
+        covers.forEach { (rel, img) ->
+          val langs = img.languages.orEmpty().joinToString(", ") { Names.lang(it) }
+          add(ViewerImage(img.asImage(), listOf(COVER_TYPES[img.type] ?: img.type, rel.title, langs).filter(String::isNotBlank).joinToString(" · ")))
+        }
         shots.forEach { sh -> add(ViewerImage(Image(url = sh.url, sexual = sh.sexual, violence = sh.violence, thumbnail = sh.thumbnail), "screenshot")) }
       }
       var viewing by remember { mutableStateOf<Int?>(null) }
@@ -117,12 +120,13 @@ fun VnScreen(app: VndbApp, basePrefs: Prefs, nav: Nav, id: String) {
               item { SpoilerSwitch(spoil) { spoil = it } }
               mainTab(v, prefs, nav, signedIn = prefs.account != null, onEdit = { editing = true },
                 covers = covers, shots = shots, onView = { viewing = it }, coverStart = coverStart, shotStart = shotStart)
+              vnQuotes(vm.quotes, nav)
             }
             item { VoteStatsBox(v.id, vm.votes, nav) { vm.loadVotes(force = true) } }
           }
           "tags" -> boxed { item { TagsTab(v, prefs, nav) { spoil = it } } }
           "releases" -> boxed { releasesTab(vm.releases, nav) { vm.loadReleases(force = true) } }
-          "characters" -> boxed { item { SpoilerSwitch(spoil) { spoil = it } }; charactersTab(v.id, vm.characters, prefs, nav) { vm.loadCharacters(force = true) } }
+          "characters" -> boxed { item { SpoilerSwitch(spoil) { spoil = it } }; charactersTab(v.id, v.va, vm.characters, prefs, nav) { vm.loadCharacters(force = true) } }
           "staff" -> boxed { staffTab(v, nav) }
         }
       }
@@ -314,7 +318,8 @@ private fun ReleaseRow(r: Release, lang: String, nav: Nav) {
   }
 }
 
-private fun LazyListScope.charactersTab(vnId: String, st: Load<List<Character>>, prefs: Prefs, nav: Nav, retry: () -> Unit) {
+private fun LazyListScope.charactersTab(vnId: String, va: List<dev.stagefuel.vndb.api.VnVa>, st: Load<List<Character>>, prefs: Prefs, nav: Nav, retry: () -> Unit) {
+  val voices = va.groupBy { it.character?.id }
   when (st) {
     Load.Idle, Load.Loading -> item { Loading() }
     is Load.Failed -> item { WarningBox(st.message, retry) }
@@ -333,6 +338,15 @@ private fun LazyListScope.charactersTab(vnId: String, st: Load<List<Character>>,
               Column {
                 Text(c.name, style = VndbType.body, color = LocalSkin.current.link)
                 c.original?.let { Grey(it) }
+                // Voice actors (vn.va); the note usually says which edition.
+                voices[c.id].orEmpty().forEach { v ->
+                  val st = v.staff ?: return@forEach
+                  Row(Modifier.padding(top = 2.dp)) {
+                    Grey("CV ")
+                    LinkText(st.name, style = VndbType.small) { nav.item(st.id) }
+                    v.note?.takeIf { it.isNotBlank() }?.let { Grey(" ($it)") }
+                  }
+                }
               }
             }
           }
@@ -344,8 +358,26 @@ private fun LazyListScope.charactersTab(vnId: String, st: Load<List<Character>>,
 
 private fun LazyListScope.staffTab(v: Vn, nav: Nav) {
   if (v.staff.isEmpty()) item { Grey("No staff listed.", Modifier.padding(12.dp), VndbType.body) }
-  v.staff.groupBy { it.role }.toSortedMap(compareBy { Names.staffRoleOrder.indexOf(it).let { i -> if (i < 0) 99 else i } }).forEach { (role, list) ->
-    item(key = "staff-$role") {
+  // Grouped by edition like the site: original credits first, then each edition (Realta Nua, Remastered…).
+  val byEdition = v.staff.groupBy { it.eid }
+  val order = listOf<Int?>(null) + v.editions.map { it.eid } + (byEdition.keys - v.editions.map { it.eid }.toSet() - setOf(null))
+  order.distinct().filter { byEdition.containsKey(it) }.forEach { eid ->
+    val ed = v.editions.firstOrNull { it.eid == eid }
+    if (eid != null || byEdition.size > 1) item(key = "ed-$eid") {
+      Text(
+        ed?.let { e -> e.name + (e.lang?.let { " (${Names.lang(it)})" } ?: "") + if (!e.official) " [unofficial]" else "" } ?: "Original edition",
+        style = VndbType.body.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold), color = LocalSkin.current.mainText,
+        modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 14.dp, bottom = 4.dp)
+          .border(1.dp, LocalSkin.current.border).background(LocalSkin.current.blendBg).padding(horizontal = 10.dp, vertical = 6.dp),
+      )
+    }
+    staffRoles(byEdition.getValue(eid), "e$eid", nav)
+  }
+}
+
+private fun LazyListScope.staffRoles(staff: List<dev.stagefuel.vndb.api.VnStaff>, keyPrefix: String, nav: Nav) {
+  staff.groupBy { it.role }.toSortedMap(compareBy { Names.staffRoleOrder.indexOf(it).let { i -> if (i < 0) 99 else i } }).forEach { (role, list) ->
+    item(key = "staff-$keyPrefix-$role") {
       Column(Modifier.padding(horizontal = 8.dp)) {
         SectionHeader(Names.staffRoles[role] ?: role)
         list.forEach { s ->
@@ -408,6 +440,22 @@ private fun VoteStatsBox(vnId: String, state: Load<dev.stagefuel.vndb.web.VoteSt
           LinkText("all votes ›") { nav.web("https://vndb.org/$vnId/votes") }
           val n = state.value?.reviews ?: 0
           LinkText(if (n > 0) "$n review${if (n == 1) "" else "s"} ›" else "reviews ›") { nav.web("https://vndb.org/$vnId/reviews") }
+        }
+      }
+    }
+  }
+}
+
+/** The VN's top quotes, highest score first. */
+private fun LazyListScope.vnQuotes(quotes: List<dev.stagefuel.vndb.api.Quote>, nav: Nav) {
+  if (quotes.isEmpty()) return
+  item(key = "quotes") {
+    Column(Modifier.padding(horizontal = 8.dp)) {
+      SectionHeader("Quotes")
+      quotes.forEach { q ->
+        Column(Modifier.padding(vertical = 3.dp)) {
+          Text("\u201C${q.quote}\u201D", style = VndbType.body, color = LocalSkin.current.mainText)
+          q.character?.takeIf { it.id.isNotEmpty() }?.let { c -> Row { Grey("\u2014 "); LinkText(c.name ?: c.id, style = VndbType.small) { nav.item(c.id) } } }
         }
       }
     }

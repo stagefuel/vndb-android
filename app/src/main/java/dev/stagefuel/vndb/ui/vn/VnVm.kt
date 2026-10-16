@@ -24,6 +24,14 @@ class VnVm(private val repo: VndbRepository, val id: String, private val voteSrc
   var votes by mutableStateOf<Load<VoteStats?>>(Load.Idle); private set
   var covers by mutableStateOf<Load<List<Pair<dev.stagefuel.vndb.api.ReleaseImages, dev.stagefuel.vndb.api.ReleaseImage>>>>(Load.Idle); private set
 
+  var quotes by mutableStateOf<List<dev.stagefuel.vndb.api.Quote>>(emptyList()); private set
+  private var quotesAsked = false
+  fun loadQuotes() {
+    if (quotesAsked) return
+    quotesAsked = true
+    viewModelScope.launch { runCatching { repo.vnQuotes(id) }.onSuccess { quotes = it } }
+  }
+
   fun loadCovers() {
     if (covers !is Load.Idle) return
     viewModelScope.launch {

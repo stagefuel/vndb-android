@@ -15,7 +15,9 @@ object Fields {
     "relations.id,relations.relation,relations.relation_official,relations.title,relations.alttitle,relations.released," +
     "screenshots.url,screenshots.dims,screenshots.sexual,screenshots.violence,screenshots.thumbnail,screenshots.thumbnail_dims," +
     "screenshots.release.id,screenshots.release.languages.lang," +
-    "staff.id,staff.name,staff.original,staff.role,staff.note,extlinks.url,extlinks.label"
+    "staff.id,staff.name,staff.original,staff.role,staff.note,staff.eid,extlinks.url,extlinks.label," +
+    "editions.eid,editions.lang,editions.name,editions.official," +
+    "va.note,va.character.id,va.character.name,va.staff.id,va.staff.name,va.staff.original"
   const val RELEASE = "id,title,alttitle,languages.lang,languages.mtl,languages.main,platforms,media.medium,media.qty," +
     "producers.id,producers.name,producers.developer,producers.publisher,released,minage,patch,freeware," +
     "uncensored,official,has_ero,voiced,engine,notes,vns.id,vns.rtype"
@@ -33,7 +35,7 @@ object Fields {
     "vn.title,vn.alttitle,vn.released,vn.rating,vn.developers.name,vn.image.url,vn.image.sexual,vn.image.violence," +
     "releases.id,releases.list_status,releases.title"
   const val RELEASE_IMAGES = "id,title,released,images.id,images.type,images.url,images.dims,images.sexual," +
-    "images.violence,images.thumbnail,images.thumbnail_dims,images.photo"
+    "images.violence,images.thumbnail,images.thumbnail_dims,images.photo,images.languages"
   const val QUOTE = "id,quote,score,vn.id,vn.title,character.id,character.name"
 }
 
@@ -58,6 +60,7 @@ object Filters {
   fun tag(id: String) = f("tag", "=", id)
   fun trait(id: String) = f("trait", "=", id)
   val randomQuote = f("random", "=", 1)
+  fun quotesOf(vnId: String) = f("vn", "=", id(vnId))
 
   /** `v17`, `https://vndb.org/v17` or `vndb.org/v17/chars` → `v17`; anything else → null. */
   fun vnId(q: String): String? =

@@ -89,6 +89,20 @@ class VndbRepository(private val api: KanaClient) {
   }
 
   suspend fun stats(): Stats = api.stats()
+  /** The VN's best-rated quotes (the site shows them under the description). */
+  suspend fun vnQuotes(vnId: String, n: Int = 10): List<Quote> =
+    api.query("quote", Query(filters = Filters.quotesOf(vnId), fields = Fields.QUOTE, sort = "score", reverse = true, results = n), Quote.serializer()).results
+
+  /**
+   * Search for anything other than VNs. Results stay raw JSON so one row layout fits every type;
+   * [SearchTypes] says which fields to ask for and how to show them.
+   */
+  suspend fun searchOther(type: String, q: String, page: Int): QueryResult<kotlinx.serialization.json.JsonObject> {
+    val t = SearchTypes.byKey.getValue(type)
+    return api.query(type, Query(filters = Filters.search(q), fields = t.fields, sort = "searchrank", results = 30, page = page),
+      kotlinx.serialization.json.JsonObject.serializer())
+  }
+
   suspend fun randomQuote(): Quote? =
     api.query("quote", Query(filters = Filters.randomQuote, fields = Fields.QUOTE, results = 1), Quote.serializer()).results.firstOrNull()
   suspend fun user(q: String) = api.user(q)
@@ -193,4 +207,32 @@ data class ListEdit(
     /** Labels VNDB manages itself: 0 (none) and 7 (Voted). */
     val MANAGED = setOf(0, 7)
   }
+}
+
+/** Non-VN search targets: Kana endpoint, field list, and how a hit is summarised in one grey line. */
+object SearchTypes {
+  data class T(val key: String, val label: String, val fields: String, val sub: (kotlinx.serialization.json.JsonObject) -> String)
+  private fun kotlinx.serialization.json.JsonObject.str(k: String) =
+    (this[k] as? kotlinx.serialization.json.JsonPrimitive)?.takeIf { it.isString }?.content
+  private fun kotlinx.serialization.json.JsonObject.num(k: String) =
+    (this[k] as? kotlinx.serialization.json.JsonPrimitive)?.content?.toIntOrNull()
+  private fun kotlinx.serialization.json.JsonObject.strs(k: String) =
+    (this[k] as? kotlinx.serialization.json.JsonArray)?.mapNotNull { (it as? kotlinx.serialization.json.JsonPrimitive)?.content }.orEmpty()
+
+  val all = listOf(
+    T("release", "releases", "id,title,alttitle,released,platforms") { o ->
+      listOfNotNull(o.str("released"), o.strs("platforms").joinToString(", ") { dev.stagefuel.vndb.ui.common.Names.platform(it) }.ifBlank { null }).joinToString(" · ") },
+    T("producer", "producers", "id,name,original,type,lang") { o ->
+      listOfNotNull(mapOf("co" to "Company", "in" to "Individual", "ng" to "Amateur group")[o.str("type")], o.str("lang")?.let { dev.stagefuel.vndb.ui.common.Names.lang(it) }).joinToString(" · ") },
+    T("character", "characters", "id,name,original") { "" },
+    T("staff", "staff", "id,name,original,lang") { o -> o.str("lang")?.let { dev.stagefuel.vndb.ui.common.Names.lang(it) }.orEmpty() },
+    T("tag", "tags", "id,name,category,vn_count") { o ->
+      listOfNotNull(dev.stagefuel.vndb.ui.common.Names.tagCats.toMap()[o.str("category")], o.num("vn_count")?.let { "$it VNs" }).joinToString(" · ") },
+    T("trait", "traits", "id,name,group_name,char_count") { o ->
+      listOfNotNull(o.str("group_name"), o.num("char_count")?.let { "$it characters" }).joinToString(" · ") },
+  )
+  val byKey = all.associateBy { it.key }
+  fun title(o: kotlinx.serialization.json.JsonObject) = o.str("title") ?: o.str("name") ?: o.str("id").orEmpty()
+  fun original(o: kotlinx.serialization.json.JsonObject) = o.str("alttitle") ?: o.str("original")
+  fun id(o: kotlinx.serialization.json.JsonObject) = o.str("id").orEmpty()
 }

@@ -67,6 +67,10 @@ class SearchVm(private val repo: VndbRepository) : ViewModel() {
     viewModelScope.launch { runCatching { quote = repo.randomQuote() } }
   }
   var results by mutableStateOf<List<Vn>>(emptyList()); private set
+  /** "vn" or a [dev.stagefuel.vndb.data.SearchTypes] key. */
+  var type by mutableStateOf("vn")
+  var hits by mutableStateOf<List<kotlinx.serialization.json.JsonObject>>(emptyList()); private set
+  val empty get() = results.isEmpty() && hits.isEmpty()
   var loading by mutableStateOf(false); private set
   var error by mutableStateOf<String?>(null); private set
   var more by mutableStateOf(false); private set
@@ -77,7 +81,7 @@ class SearchVm(private val repo: VndbRepository) : ViewModel() {
   /** A blank query browses the whole database in the chosen order (relevance falls back to rating). */
   fun search() {
     val q = query.trim()
-    if (q.isEmpty() && sort == 0) return
+    if (q.isEmpty() && (sort == 0 || type != "vn")) return
     page = 1
     load(q, reset = true)
   }
@@ -92,10 +96,16 @@ class SearchVm(private val repo: VndbRepository) : ViewModel() {
     job?.cancel()
     job = viewModelScope.launch {
       loading = true; error = null
-      val (key, _, rev) = SEARCH_SORTS[sort]
-      runCatching { repo.browseVns(q, key, rev, page) }
-        .onSuccess { r -> results = if (reset) r.results else results + r.results; more = r.more; searched = true }
-        .onFailure { error = it.message ?: "Search failed" }
+      if (type == "vn") {
+        val (key, _, rev) = SEARCH_SORTS[sort]
+        runCatching { repo.browseVns(q, key, rev, page) }
+          .onSuccess { r -> hits = emptyList(); results = if (reset) r.results else results + r.results; more = r.more; searched = true }
+          .onFailure { error = it.message ?: "Search failed" }
+      } else {
+        runCatching { repo.searchOther(type, q, page) }
+          .onSuccess { r -> results = emptyList(); hits = if (reset) r.results else hits + r.results; more = r.more; searched = true }
+          .onFailure { error = it.message ?: "Search failed" }
+      }
       loading = false
     }
   }
@@ -124,7 +134,16 @@ fun SearchScreen(app: VndbApp, prefs: Prefs, nav: Nav) {
     )
   }
   val sortRow = @Composable {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+    @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+    androidx.compose.foundation.layout.FlowRow(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 6.dp),
+      horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+      Grey("find:", style = VndbType.small)
+      (listOf("vn" to "visual novels") + dev.stagefuel.vndb.data.SearchTypes.all.map { it.key to it.label }).forEach { (k, label) ->
+        Text(label, style = VndbType.small, color = if (vm.type == k) skin.mainText else skin.link,
+          modifier = Modifier.clickable { if (vm.type != k) { vm.type = k; vm.search() } })
+      }
+    }
+    if (vm.type == "vn") Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
       Grey("sort:", style = VndbType.small)
       SEARCH_SORTS.forEachIndexed { i, (_, label, _) ->
         Text(
@@ -134,7 +153,7 @@ fun SearchScreen(app: VndbApp, prefs: Prefs, nav: Nav) {
       }
     }
   }
-  val idle = !vm.searched && vm.results.isEmpty() && vm.error == null && !vm.loading
+  val idle = !vm.searched && vm.empty && vm.error == null && !vm.loading
   if (bottom && idle) {
     // Start page with the search box at the bottom: title, stats and quote sit just above the middle.
     Column(Modifier.fillMaxSize()) {
@@ -150,19 +169,23 @@ fun SearchScreen(app: VndbApp, prefs: Prefs, nav: Nav) {
   Column(Modifier.fillMaxSize()) {
     dev.stagefuel.vndb.ui.common.SiteTitle()
     if (!bottom) { searchBar(); sortRow() }
-    if (!vm.searched && vm.results.isEmpty()) {
+    if (!vm.searched && vm.empty) {
       vm.stats?.let { StatsBox(it) }
       vm.quote?.let { q -> QuoteLine(q) { q.vn?.id?.takeIf(String::isNotEmpty)?.let(nav::vn) } }
     }
     when {
       vm.error != null -> WarningBox(vm.error!!, onRetry = vm::search)
-      vm.loading && vm.results.isEmpty() -> Loading()
-      vm.searched && vm.results.isEmpty() -> Grey("No results.", Modifier.padding(12.dp), VndbType.body)
+      vm.loading && vm.empty -> Loading()
+      vm.searched && vm.empty -> Grey("No results.", Modifier.padding(12.dp), VndbType.body)
     }
     LazyColumn(Modifier.weight(1f).padding(horizontal = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
       itemsIndexed(vm.results, key = { _, v -> v.id }) { i, v ->
         if (i >= vm.results.size - 5) LaunchedEffect(vm.results.size) { vm.loadMore() }
         VnRow(v, prefs) { nav.vn(v.id) }
+      }
+      itemsIndexed(vm.hits, key = { _, h -> dev.stagefuel.vndb.data.SearchTypes.id(h) }) { i, h ->
+        if (i >= vm.hits.size - 5) LaunchedEffect(vm.hits.size) { vm.loadMore() }
+        HitRow(h, vm.type) { nav.item(dev.stagefuel.vndb.data.SearchTypes.id(h)) }
       }
       if (vm.loading && vm.results.isNotEmpty()) item { Loading() }
       if (vm.more && !vm.loading) item { LinkText("next ›", Modifier.padding(12.dp)) { vm.loadMore() } }
@@ -212,5 +235,17 @@ private fun QuoteLine(q: dev.stagefuel.vndb.api.Quote, onClick: () -> Unit) {
     Text("\u201C${q.quote}\u201D", style = VndbType.small, color = skin.link, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.fillMaxWidth())
     val by = listOfNotNull(q.character?.name, q.vn?.title).joinToString(", ")
     if (by.isNotEmpty()) Grey("\u2014 $by", Modifier.fillMaxWidth(), VndbType.small)
+  }
+}
+
+/** One search hit for releases/producers/characters/staff/tags/traits: name, original name, a grey summary. */
+@Composable
+private fun HitRow(h: kotlinx.serialization.json.JsonObject, type: String, onClick: () -> Unit) {
+  val skin = LocalSkin.current
+  val t = dev.stagefuel.vndb.data.SearchTypes
+  VndbBox(Modifier.clickable(onClick = onClick), padding = 6) {
+    Text(t.title(h), style = VndbType.body, color = skin.link, maxLines = 2, overflow = TextOverflow.Ellipsis)
+    t.original(h)?.takeIf { it != t.title(h) }?.let { Grey(it, style = VndbType.small) }
+    t.byKey[type]?.sub?.invoke(h)?.takeIf { it.isNotBlank() }?.let { Grey(it) }
   }
 }

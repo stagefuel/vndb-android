@@ -93,7 +93,19 @@ data class VnStaff(
   val original: String? = null,
   val role: String,
   val note: String? = null,
+  /** Edition this credit belongs to (vn.editions); null = the original release. */
+  val eid: Int? = null,
 )
+
+@Serializable
+data class Edition(val eid: Int, val lang: String? = null, val name: String = "", val official: Boolean = true)
+
+@Serializable
+data class VaRef(val id: String, val name: String = "", val original: String? = null)
+
+/** vn.va: who voices which character, with an optional note (e.g. which edition). */
+@Serializable
+data class VnVa(val note: String? = null, val character: VaRef? = null, val staff: VaRef? = null)
 
 @Serializable
 data class ExtLink(val url: String, val label: String, val name: String? = null)
@@ -124,6 +136,8 @@ data class Vn(
   val screenshots: List<Screenshot> = emptyList(),
   val staff: List<VnStaff> = emptyList(),
   val extlinks: List<ExtLink> = emptyList(),
+  val editions: List<Edition> = emptyList(),
+  val va: List<VnVa> = emptyList(),
 )
 
 @Serializable
@@ -367,6 +381,8 @@ data class ReleaseImage(
   val thumbnail: String? = null,
   @SerialName("thumbnail_dims") val thumbnailDims: List<Int>? = null,
   val photo: Boolean = false,
+  /** Languages the image is for (null = all of the release's). */
+  val languages: List<String>? = null,
 ) {
   fun asImage() = Image(id = id, url = url, dims = dims, sexual = sexual, violence = violence, thumbnail = thumbnail, thumbnailDims = thumbnailDims)
 }
