@@ -25,18 +25,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import dev.stagefuel.vndb.ui.theme.LocalSkin
 import dev.stagefuel.vndb.ui.theme.VndbType
 
 /** The site's `<article>`: 1px border, translucent box background, square corners. */
 @Composable
-fun VndbBox(modifier: Modifier = Modifier, padding: Int = 6, content: @Composable ColumnScope.() -> Unit) {
+fun VndbBox(modifier: Modifier = Modifier, padding: Int = 6, border: Dp = 1.dp, content: @Composable ColumnScope.() -> Unit) {
   val s = LocalSkin.current
   Column(
     modifier
       .fillMaxWidth()
-      .border(1.dp, s.border)
+      .border(border, s.border)
       .background(s.boxBg)
       .padding(padding.dp),
     content = content,
@@ -50,6 +52,12 @@ fun BoxTitle(title: String, alt: String? = null) {
   Text(title, style = VndbType.h1, color = s.boxTitle)
   if (!alt.isNullOrBlank() && alt != title) Text(alt, style = VndbType.altTitle, color = s.altTitle, modifier = Modifier.padding(start = 12.dp))
 }
+
+/** Heading above a box, like the forum's board names (`nav > h1` on the site). */
+@Composable
+fun BoxHeading(text: String, modifier: Modifier = Modifier) =
+  Text(text, style = VndbType.h1.copy(fontSize = 20.sp, lineHeight = 24.sp), color = LocalSkin.current.link,
+    modifier = modifier.padding(start = 2.dp, top = 10.dp, bottom = 4.dp))
 
 /** Sidebar-style `h2`: bottom border, box background. */
 @Composable
@@ -74,6 +82,7 @@ fun SiteTitle() = Text(
   "the visual novel database",
   style = VndbType.siteTitle,
   color = LocalSkin.current.mainTitle,
+  textAlign = androidx.compose.ui.text.style.TextAlign.End,
   modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 16.dp, bottom = 8.dp),
 )
 

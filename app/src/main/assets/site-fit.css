@@ -5,9 +5,8 @@ body { padding: 0 6px 20px 6px !important; grid-template-columns: minmax(0, 1fr)
        grid-template-rows: auto auto auto !important; }
 #bgright { display: none !important; }
 body > header { grid-area: 1/1/2/2 !important; }
-/* Same spot and size as the app's own "the visual novel database" title. */
-body > header h1 { padding: 16px 6px 8px 6px !important; margin: 0 !important; font-size: 20px; line-height: 1.2;
-  text-align: left !important; align-self: stretch !important; }
+/* Same spot and size as the app's own "the visual novel database" title (right-aligned, as on the site). */
+body > header h1 { padding: 16px 6px 8px 6px !important; margin: 0 !important; font-size: 20px; line-height: 1.2; }
 body > header nav > label { visibility: visible !important; }
 #mainmenu ~ nav { grid-area: 2/1/3/2 !important; margin: 0 0 10px 0 !important; }
 #mainmenu:not(:checked) ~ nav { display: none !important; }

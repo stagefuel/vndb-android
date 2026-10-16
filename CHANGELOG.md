@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.3
+- Me: thinner box borders, section headings above the boxes like the forum's board names.
+- "the visual novel database" header right-aligned on Search and Me, matching vndb.org pages.
+
+## 0.3.3
+- Me: thinner box borders, section headings above the boxes like the forum's board names.
+- vndb.org pages: "the visual novel database" header left-aligned like the rest of the app.
+
 ## 0.3.2
 - Tapping the tab you're in (e.g. Me) goes back to its main page from any sub-page; the tab stays highlighted on its sub-pages.
 - Me shows when the in-app browser isn't logged in to vndb.org; notifications and edit profile then open the login page instead of "page does not exist".

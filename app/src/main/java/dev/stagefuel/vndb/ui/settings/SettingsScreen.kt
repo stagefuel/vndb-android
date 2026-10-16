@@ -40,6 +40,7 @@ import dev.stagefuel.vndb.ui.common.Grey
 import dev.stagefuel.vndb.ui.common.LinkText
 import dev.stagefuel.vndb.ui.common.SectionHeader
 import dev.stagefuel.vndb.ui.common.VndbBox
+import dev.stagefuel.vndb.ui.common.BoxHeading
 import dev.stagefuel.vndb.ui.common.WarningBox
 import dev.stagefuel.vndb.ui.theme.LocalSkin
 import dev.stagefuel.vndb.ui.theme.Skins
@@ -58,8 +59,8 @@ fun SettingsScreen(app: VndbApp, prefs: Prefs, nav: Nav, updates: dev.stagefuel.
     dev.stagefuel.vndb.ui.common.SiteTitle()
     Column(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp)) {
     prefs.account?.let { acc ->
-      VndbBox {
-        SectionHeader(acc.username)
+      BoxHeading(acc.username)
+      VndbBox(border = 0.5.dp) {
         val u = "https://vndb.org/${acc.id}"
         // The web view keeps its own vndb.org login (cookie), separate from the API token; it is lost on reinstall.
         // Logged-out visits to your own notifications/edit pages get the site's "page does not exist".
@@ -79,12 +80,12 @@ fun SettingsScreen(app: VndbApp, prefs: Prefs, nav: Nav, updates: dev.stagefuel.
           LinkText("history") { nav.web("$u/hist") }
         }
       }
-      Spacer(Modifier.height(10.dp))
+      Spacer(Modifier.height(4.dp))
     }
     UserLookup(app, nav)
-    Spacer(Modifier.height(10.dp))
-    VndbBox {
-      SectionHeader("Account")
+    Spacer(Modifier.height(4.dp))
+    BoxHeading("Account")
+    VndbBox(border = 0.5.dp) {
       val acc = prefs.account
       if (acc != null) {
         Text("Signed in as ${acc.username} (${acc.id})", style = VndbType.body, color = skin.mainText)
@@ -127,20 +128,20 @@ fun SettingsScreen(app: VndbApp, prefs: Prefs, nav: Nav, updates: dev.stagefuel.
       Spacer(Modifier.height(4.dp))
       Grey("Forums and other site pages use the vndb.org login in the Forums tab; that's separate from the token.")
     }
-    Spacer(Modifier.height(10.dp))
+    Spacer(Modifier.height(4.dp))
 
-    VndbBox {
-      SectionHeader("Display")
+    BoxHeading("Display")
+    VndbBox(border = 0.5.dp) {
       SkinPicker(prefs.skin) { id -> scope.launch { app.settings.setSkin(id) } }
       Choice("Sexual images", listOf("safe", "suggestive", "explicit"), prefs.maxSexual) { scope.launch { app.settings.setMaxSexual(it) } }
       Choice("Violent images", listOf("tame", "violent", "brutal"), prefs.maxViolence) { scope.launch { app.settings.setMaxViolence(it) } }
       Choice("Spoilers", listOf("hide", "minor", "all"), prefs.spoilers) { scope.launch { app.settings.setSpoilers(it) } }
       Choice("Tabs", listOf("top", "bottom"), if (prefs.tabsBottom) 1 else 0) { scope.launch { app.settings.setTabsBottom(it == 1) } }
     }
-    Spacer(Modifier.height(10.dp))
+    Spacer(Modifier.height(4.dp))
 
-    VndbBox {
-      SectionHeader("About")
+    BoxHeading("About")
+    VndbBox(border = 0.5.dp) {
       Row {
         Text("vndb-android ${BuildConfig.VERSION_NAME}  ", style = VndbType.body, color = skin.mainText)
         updates.status?.let { Grey(it, style = VndbType.body) } ?: LinkText("check for updates") { updates.check(manual = true) }
@@ -207,8 +208,8 @@ private fun UserLookup(app: VndbApp, nav: Nav) {
         .onFailure { msg = it.message }
     }
   }
-  VndbBox {
-    SectionHeader("Users")
+  BoxHeading("Users")
+  VndbBox(border = 0.5.dp) {
     BasicTextField(
       value = q,
       onValueChange = { q = it },
