@@ -143,11 +143,14 @@ private val SEX = mapOf("m" to "Male", "f" to "Female", "b" to "Both", "n" to "S
 private val MONTHS = listOf("", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
 
 @Composable
-private fun CharacterPage(c: CharacterFull, prefs: Prefs, nav: Nav) {
+private fun CharacterPage(c: CharacterFull, basePrefs: Prefs, nav: Nav) {
   val skin = LocalSkin.current
+  var spoil by rememberSaveable(c.id) { mutableIntStateOf(basePrefs.spoilers) }
+  val prefs = basePrefs.copy(spoilers = spoil)
   Page(c.id, c.name, c.original, nav) {
     item {
       VndbBox(Modifier.padding(horizontal = 6.dp)) {
+        dev.stagefuel.vndb.ui.common.SpoilerSwitch(spoil) { spoil = it }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
           GatedImage(c.image, prefs, Modifier.widthIn(max = 256.dp).height(300.dp).clickable(enabled = c.image?.url != null) {
             c.image?.let { nav.images(listOf(dev.stagefuel.vndb.ui.common.ViewerImage(it, c.name)), 0) }

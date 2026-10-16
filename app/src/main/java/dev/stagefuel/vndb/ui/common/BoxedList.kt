@@ -2,6 +2,7 @@ package dev.stagefuel.vndb.ui.common
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -36,7 +37,8 @@ private class BoxedScope(private val d: LazyListScope) : LazyListScope by d {
 @Composable
 private fun Slice(content: @Composable () -> Unit) {
   val s = LocalSkin.current
-  Box(
+  // A Column, not a Box: an item's children (e.g. a heading and an image row) go one under the other.
+  Column(
     Modifier.fillMaxWidth().padding(horizontal = 6.dp).background(s.boxBg).drawBehind {
       val w = 1.dp.toPx()
       drawLine(s.border, Offset(w / 2, 0f), Offset(w / 2, size.height), w)

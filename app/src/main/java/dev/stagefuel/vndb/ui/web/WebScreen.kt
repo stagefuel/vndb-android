@@ -43,8 +43,9 @@ fun WebScreen(url: String, nav: Nav) {
   var view by remember { mutableStateOf<WebView?>(null) }
   val bottomTabs by rememberUpdatedState(LocalTabsBottom.current)
   val bodyBg by rememberUpdatedState(skin.bodyBg)
-  // Re-style an open page when the setting changes.
-  LaunchedEffect(bottomTabs) { view?.let { fitToPhone(it, bottomTabs, bodyBg) } }
+  val skinId by rememberUpdatedState(skin.id)
+  // Re-style an open page when the settings change.
+  LaunchedEffect(bottomTabs, skinId) { view?.let { fitToPhone(it, bottomTabs, bodyBg, skinId) } }
 
   BackHandler(enabled = canGoBack) { view?.goBack() }
 
@@ -67,10 +68,10 @@ fun WebScreen(url: String, nav: Nav) {
               }
             }
             override fun onPageStarted(v: WebView, u: String?, favicon: Bitmap?) { loading = true }
-            override fun onPageCommitVisible(v: WebView, u: String?) { fitToPhone(v, bottomTabs, bodyBg) }
+            override fun onPageCommitVisible(v: WebView, u: String?) { fitToPhone(v, bottomTabs, bodyBg, skinId) }
             override fun onPageFinished(v: WebView, u: String?) {
               loading = false
-              fitToPhone(v, bottomTabs, bodyBg)
+              fitToPhone(v, bottomTabs, bodyBg, skinId)
               canGoBack = v.canGoBack()
               CookieManager.getInstance().flush()
             }
@@ -89,9 +90,10 @@ private var bottomCss: String? = null
 /**
  * vndb.org has no phone layout (fixed widths, a 2-column grid), so pages get a stylesheet that reflows
  * them to the screen width; with "Tabs: bottom" the page's main tabs are pinned above the nav bar.
+ * The page also gets the app's skin (the site's per-skin stylesheet is swapped), so both always match.
  * Idempotent: the same <style> element is replaced on every call.
  */
-internal fun fitToPhone(v: WebView, tabsBottom: Boolean, bodyBg: Color) {
+internal fun fitToPhone(v: WebView, tabsBottom: Boolean, bodyBg: Color, skinId: String) {
   val assets = v.context.assets
   val fit = fitCss ?: assets.open("site-fit.css").bufferedReader().use { it.readText() }.also { fitCss = it }
   val bottom = bottomCss ?: assets.open("site-tabs-bottom.css").bufferedReader().use { it.readText() }.also { bottomCss = it }
@@ -103,6 +105,12 @@ internal fun fitToPhone(v: WebView, tabsBottom: Boolean, bodyBg: Color) {
       if(!d.querySelector('meta[name=viewport]')){var m=d.createElement('meta');m.name='viewport';m.content='width=device-width, initial-scale=1';h.appendChild(m);}
       var s=d.getElementById('vndbapp-fit'); if(!s){s=d.createElement('style');s.id='vndbapp-fit';}
       s.textContent=${JsonPrimitive(css)}; h.appendChild(s);
+      // Use the app's skin: swap the site's skin stylesheet (/<skin>.css) for the chosen one.
+      var want='/'+${JsonPrimitive(skinId)}+'.css';
+      d.querySelectorAll('link[rel=stylesheet]').forEach(function(l){
+        var p; try{p=new URL(l.href).pathname}catch(e){return}
+        if(/^\/[a-z0-9_-]+\.css$/.test(p) && !/^\/u\d+\.css$/.test(p) && p!==want) l.href=want;
+      });
       var n=d.querySelector('body > header > nav');
       if(d.body){ if(${tabsBottom} && n) d.body.style.setProperty('padding-bottom',(n.offsetHeight+12)+'px','important'); else d.body.style.removeProperty('padding-bottom'); }
     })()""",

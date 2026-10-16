@@ -164,3 +164,16 @@ fun formatVote(v: Int?): String = when {
 }
 
 fun formatRating(r: Double?): String = r?.let { "%.2f".format(it / 10.0) } ?: "-"
+
+/** The site's spoiler picker ("hide spoilers · show minor spoilers · spoil me!"); 0..2 like the spoiler setting. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun SpoilerSwitch(level: Int, modifier: Modifier = Modifier, onChange: (Int) -> Unit) {
+  val s = LocalSkin.current
+  FlowRow(modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.Center) {
+    listOf("hide spoilers", "show minor spoilers", "spoil me!").forEachIndexed { i, l ->
+      Text(l, style = VndbType.small, color = if (level == i) s.mainText else s.link,
+        modifier = Modifier.clickable { onChange(i) }.padding(horizontal = 6.dp, vertical = 4.dp))
+    }
+  }
+}

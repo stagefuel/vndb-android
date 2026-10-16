@@ -55,6 +55,7 @@ import dev.stagefuel.vndb.ui.common.Names
 import dev.stagefuel.vndb.ui.common.SectionHeader
 import dev.stagefuel.vndb.ui.common.VndbBox
 import dev.stagefuel.vndb.ui.common.boxed
+import dev.stagefuel.vndb.ui.common.SpoilerSwitch
 import dev.stagefuel.vndb.ui.common.ImageViewer
 import dev.stagefuel.vndb.ui.common.ViewerImage
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -69,8 +70,11 @@ import dev.stagefuel.vndb.ui.theme.VndbType
 private val TABS = listOf("main", "tags", "releases", "characters", "staff")
 
 @Composable
-fun VnScreen(app: VndbApp, prefs: Prefs, nav: Nav, id: String) {
+fun VnScreen(app: VndbApp, basePrefs: Prefs, nav: Nav, id: String) {
   val vm = viewModel(key = "vn-$id") { VnVm(app.repo, id, app.voteStats) }
+  // Per-page spoiler level (starts at the setting); everything below reads it through prefs.spoilers.
+  var spoil by rememberSaveable(id) { mutableIntStateOf(basePrefs.spoilers) }
+  val prefs = basePrefs.copy(spoilers = spoil)
   var tab by rememberSaveable { mutableIntStateOf(0) }
   var editing by rememberSaveable { mutableStateOf(false) }
 
@@ -110,14 +114,15 @@ fun VnScreen(app: VndbApp, prefs: Prefs, nav: Nav, id: String) {
         when (TABS[tab]) {
           "main" -> {
             boxed {
+              item { SpoilerSwitch(spoil) { spoil = it } }
               mainTab(v, prefs, nav, signedIn = prefs.account != null, onEdit = { editing = true },
                 covers = covers, shots = shots, onView = { viewing = it }, coverStart = coverStart, shotStart = shotStart)
             }
             item { VoteStatsBox(v.id, vm.votes, nav) { vm.loadVotes(force = true) } }
           }
-          "tags" -> boxed { item { TagsTab(v, prefs, nav) } }
+          "tags" -> boxed { item { TagsTab(v, prefs, nav) { spoil = it } } }
           "releases" -> boxed { releasesTab(vm.releases, nav) { vm.loadReleases(force = true) } }
-          "characters" -> boxed { charactersTab(v.id, vm.characters, prefs, nav) { vm.loadCharacters(force = true) } }
+          "characters" -> boxed { item { SpoilerSwitch(spoil) { spoil = it } }; charactersTab(v.id, vm.characters, prefs, nav) { vm.loadCharacters(force = true) } }
           "staff" -> boxed { staffTab(v, nav) }
         }
       }
@@ -221,9 +226,9 @@ private fun InfoTable(v: Vn, nav: Nav) {
 /** `div#vntags`: tags sized by rating, spoiler level picker, summary vs all, category filter. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun TagsTab(v: Vn, prefs: Prefs, nav: Nav) {
+private fun TagsTab(v: Vn, prefs: Prefs, nav: Nav, onSpoil: (Int) -> Unit) {
   val skin = LocalSkin.current
-  var spoil by rememberSaveable { mutableIntStateOf(prefs.spoilers) }
+  val spoil = prefs.spoilers
   var all by rememberSaveable { mutableStateOf(false) }
   var cats by rememberSaveable { mutableStateOf(setOf("cont", "tech") + if (prefs.maxSexual >= 1) setOf("ero") else emptySet()) }
 
@@ -233,7 +238,7 @@ private fun TagsTab(v: Vn, prefs: Prefs, nav: Nav) {
     FlowRow(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
       Names.tagCats.forEach { (k, label) -> opt(label, k in cats) { cats = if (k in cats) cats - k else cats + k } }
       Text(" | ", style = VndbType.small, color = skin.grayedOut, modifier = Modifier.padding(vertical = 4.dp))
-      listOf("hide spoilers", "show minor spoilers", "spoil me!").forEachIndexed { i, l -> opt(l, spoil == i) { spoil = i } }
+      listOf("hide spoilers", "show minor spoilers", "spoil me!").forEachIndexed { i, l -> opt(l, spoil == i) { onSpoil(i) } }
       Text(" | ", style = VndbType.small, color = skin.grayedOut, modifier = Modifier.padding(vertical = 4.dp))
       opt("summary", !all) { all = false }
       opt("all", all) { all = true }
@@ -276,7 +281,8 @@ private fun LazyListScope.releasesTab(st: Load<List<Release>>, nav: Nav, retry: 
             "${Names.lang(lang)} (${rels.size})",
             style = VndbType.body.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold),
             color = skin.mainText,
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp).border(1.dp, skin.border).padding(6.dp),
+            modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 14.dp, bottom = 6.dp)
+              .border(1.dp, skin.border).background(skin.blendBg).padding(horizontal = 10.dp, vertical = 6.dp),
           )
         }
         items(rels, key = { "$lang-${it.id}" }) { r -> ReleaseRow(r, lang, nav) }

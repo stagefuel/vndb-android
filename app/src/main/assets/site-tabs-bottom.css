@@ -1,5 +1,11 @@
-/* "Tabs: bottom": the page's main tabs (profile / edit / list / votes …) sit above the app's nav bar. */
+/* "Tabs: bottom": the page's main tabs (profile / edit / list / votes …) sit above the app's nav bar,
+   drawn as whole boxes (the site's tabs are open at the bottom, which looks cut off down here). */
 body > header > nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; padding: 6px 6px 8px 6px;
-  background: var(--app-bodybg); border-top: 1px solid var(--border); align-items: flex-start !important; }
-body > header > nav > menu > li > a { border-bottom: 1px solid var(--border) !important; border-top: none !important; }
-body > header > nav > menu > li.tabselected > a { margin-bottom: 0 !important; margin-top: -1px; }
+  background: var(--app-bodybg); border-top: 1px solid var(--border);
+  display: flex !important; flex-wrap: wrap; gap: 6px; justify-content: flex-start !important; align-items: center !important; }
+body > header > nav > label { margin: 0 !important; }
+body > header > nav > menu { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 !important; padding: 0; }
+body > header > nav > menu > li { margin: 0 !important; }
+body > header > nav > menu > li > a { display: inline-block; height: auto !important; margin: 0 !important;
+  padding: 3px 8px !important; border: 1px solid var(--border) !important; }
+body > header > nav > menu > li.tabselected > a { background: var(--boxbg); }

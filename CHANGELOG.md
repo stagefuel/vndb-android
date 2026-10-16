@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.6
+- Fixed headings overlapping the cover/screenshot rows on VN pages.
+- Spoiler switch (hide / minor / spoil me!) on VN pages (main, tags, characters) and character pages, starting from your setting.
+- Release language headings get room around them.
+- vndb.org pages in the app use the skin you picked in the app, so the two always match.
+- Bottom tabs on vndb.org pages (profile etc.) are whole boxes in one wrapping row with the Menu button, instead of looking cut off.
+
 ## 0.3.5
 - Image links (vndb.org pages, descriptions, forum posts) open in the in-app viewer instead of a browser tab; tapping a character's picture opens it too.
 - VN user stats link to the VN's reviews (with the count) as well as all votes.
