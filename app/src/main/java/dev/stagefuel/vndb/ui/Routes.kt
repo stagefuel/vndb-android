@@ -34,6 +34,11 @@ object Routes {
   data class InApp(val route: String) : Target
   data class External(val url: String) : Target
 
+  private val imageUrl = Regex("""^https?://(?:[a-z0-9-]+\.)*(?:t\.vndb\.org/.+|[^?#]+\.(?:jpe?g|png|webp|gif|avif)(?:[?#].*)?)$""", RegexOption.IGNORE_CASE)
+
+  /** Image files (vndb's image host or any *.jpg/png/webp/gif link) open in the in-app viewer. */
+  fun isImage(url: String) = imageUrl.matches(url)
+
   fun resolve(url: String): Target {
     vnUrl.find(url)?.let { return InApp(vn(it.groupValues[1].lowercase())) }
     itemUrl.find(url)?.let { return InApp(item(it.groupValues[1].lowercase())) }

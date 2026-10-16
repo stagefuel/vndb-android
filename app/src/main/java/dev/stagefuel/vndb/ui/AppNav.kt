@@ -41,6 +41,8 @@ import dev.stagefuel.vndb.ui.theme.LocalSkin
 import dev.stagefuel.vndb.ui.theme.VndbType
 import dev.stagefuel.vndb.ui.vn.VnScreen
 import dev.stagefuel.vndb.ui.web.WebScreen
+import dev.stagefuel.vndb.ui.common.ImageViewer
+import dev.stagefuel.vndb.ui.common.ViewerImage
 
 private data class Tab(val route: String, val label: String, val icon: ImageVector)
 
@@ -52,22 +54,33 @@ private val tabs = listOf(
 )
 
 /** Navigation callbacks handed to every screen. */
-class Nav(private val nav: NavHostController, private val external: (String) -> Unit) {
+class Nav(
+  private val nav: NavHostController,
+  private val external: (String) -> Unit,
+  /** Opens the full-screen image viewer. */
+  val images: (List<ViewerImage>, Int) -> Unit = { _, _ -> },
+) {
   fun vn(id: String) = nav.navigate(Routes.vn(id))
   fun item(id: String) = nav.navigate(Routes.item(id))
   fun userList(uid: String, name: String) = nav.navigate(Routes.userList(uid, name))
   fun back() = nav.popBackStack()
   fun web(url: String) = nav.navigate(Routes.web(url))
-  fun open(url: String) = when (val t = Routes.resolve(url)) {
-    is Routes.InApp -> nav.navigate(t.route)
-    is Routes.External -> external(t.url)
+  fun image(url: String) = images(listOf(ViewerImage(dev.stagefuel.vndb.api.Image(url = url), "")), 0)
+  fun open(url: String) {
+    if (Routes.isImage(url)) return image(url)
+    when (val t = Routes.resolve(url)) {
+      is Routes.InApp -> nav.navigate(t.route)
+      is Routes.External -> external(t.url)
+    }
   }
 }
 
 @Composable
 fun AppNav(app: VndbApp, prefs: Prefs, startUrl: String?, onStartUrlUsed: () -> Unit, openExternal: (String) -> Unit) {
   val nav = rememberNavController()
-  val n = Nav(nav, openExternal)
+  var viewer by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<Pair<List<ViewerImage>, Int>?>(null) }
+  val n = androidx.compose.runtime.remember(nav) { Nav(nav, openExternal) { list, i -> viewer = list to i } }
+  viewer?.let { (list, i) -> ImageViewer(list, i, prefs) { viewer = null } }
   val skin = LocalSkin.current
   LaunchedEffect(startUrl) { startUrl?.let { n.open(it); onStartUrlUsed() } }
   // The tab whose stack is showing, so it stays highlighted on its sub-pages and a second tap returns to its top.

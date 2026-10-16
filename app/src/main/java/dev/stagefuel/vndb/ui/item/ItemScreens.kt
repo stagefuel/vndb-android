@@ -149,7 +149,9 @@ private fun CharacterPage(c: CharacterFull, prefs: Prefs, nav: Nav) {
     item {
       VndbBox(Modifier.padding(horizontal = 6.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-          GatedImage(c.image, prefs, Modifier.widthIn(max = 256.dp).height(300.dp))
+          GatedImage(c.image, prefs, Modifier.widthIn(max = 256.dp).height(300.dp).clickable(enabled = c.image?.url != null) {
+            c.image?.let { nav.images(listOf(dev.stagefuel.vndb.ui.common.ViewerImage(it, c.name)), 0) }
+          })
         }
         Spacer(Modifier.height(8.dp))
         val rows = buildList<Pair<String, @Composable () -> Unit>> {

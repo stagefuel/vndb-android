@@ -16,6 +16,7 @@ class VoteStatsTest {
     assertEquals(8792, s.total)
     assertEquals(listOf("8792 votes (rank 120)", "8.45 average (8.45 weighted, rank 18)"), s.summary)
     assertEquals(2, s.recent.size)
+    assertEquals(5, s.reviews)
     assertEquals("Some One", s.recent[0].user)
     assertEquals("u42", s.recent[0].userId)
     assertEquals("8.5", s.recent[0].vote)

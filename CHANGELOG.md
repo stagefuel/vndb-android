@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.5
+- Image links (vndb.org pages, descriptions, forum posts) open in the in-app viewer instead of a browser tab; tapping a character's picture opens it too.
+- VN user stats link to the VN's reviews (with the count) as well as all votes.
+
 ## 0.3.4
 - VN tabs (tags, releases, characters, staff) and the screenshots/relations part of the main tab sit inside a box like on the site, instead of on the plain background.
 - VN pages: "Covers & artwork" row with every release's front/back/side/media/contents/digital images, and a full-screen

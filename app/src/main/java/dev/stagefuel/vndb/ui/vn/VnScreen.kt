@@ -398,7 +398,11 @@ private fun VoteStatsBox(vnId: String, state: Load<dev.stagefuel.vndb.web.VoteSt
             }
           }
         }
-        LinkText("all votes ›", Modifier.padding(top = 6.dp)) { nav.web("https://vndb.org/$vnId/votes") }
+        Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+          LinkText("all votes ›") { nav.web("https://vndb.org/$vnId/votes") }
+          val n = state.value?.reviews ?: 0
+          LinkText(if (n > 0) "$n review${if (n == 1) "" else "s"} ›" else "reviews ›") { nav.web("https://vndb.org/$vnId/reviews") }
+        }
       }
     }
   }

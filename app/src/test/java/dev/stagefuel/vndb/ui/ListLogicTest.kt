@@ -4,6 +4,7 @@ import dev.stagefuel.vndb.ui.common.formatVote
 import dev.stagefuel.vndb.ui.list.parseVote
 import dev.stagefuel.vndb.ui.theme.Skins
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -29,6 +30,10 @@ class ListLogicTest {
     assertEquals(Routes.InApp("web?url=https%3A%2F%2Fvndb.org%2Fv17%2Fvotes"), Routes.resolve("https://vndb.org/v17/votes"))
     assertEquals(Routes.InApp("web?url=https%3A%2F%2Fvndb.org%2Ft%2Fdb"), Routes.resolve("https://vndb.org/t/db"))
     assertEquals(Routes.External("https://example.com/v17"), Routes.resolve("https://example.com/v17"))
+    assertTrue(Routes.isImage("https://t.vndb.org/sf/12/34512.jpg"))
+    assertTrue(Routes.isImage("https://i.imgur.com/abc.PNG?x=1"))
+    assertFalse(Routes.isImage("https://vndb.org/v17"))
+    assertFalse(Routes.isImage("https://example.com/page.html"))
   }
 
   @Test fun skinsTableComplete() {

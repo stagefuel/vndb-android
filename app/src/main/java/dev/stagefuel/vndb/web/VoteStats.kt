@@ -18,6 +18,8 @@ data class VoteStats(
   val buckets: List<Pair<Int, Int>>,
   val summary: List<String>,
   val recent: List<RecentVote>,
+  /** From the recent-votes footer ("5 reviews »"); 0 when the VN has none. */
+  val reviews: Int = 0,
 ) {
   data class RecentVote(val user: String?, val userId: String?, val vote: String, val date: String)
   val total get() = buckets.sumOf { it.second }
@@ -39,7 +41,9 @@ object VoteStatsParser {
     val recent = stats.selectFirst("table.recentvotes")?.select("tr")
       ?.filter { it.parent()?.tagName() != "thead" && it.parent()?.tagName() != "tfoot" && it.select("td").size >= 3 }
       ?.map { tr -> recentRow(tr) }.orEmpty()
-    return VoteStats(buckets, summary, recent)
+    val reviews = stats.selectFirst("table.recentvotes tfoot a[href*=/reviews]")?.text()
+      ?.let { Regex("""(\d+)\s+reviews?""").find(it)?.groupValues?.get(1)?.toIntOrNull() } ?: 0
+    return VoteStats(buckets, summary, recent, reviews)
   }
 
   private fun recentRow(tr: Element): VoteStats.RecentVote {
