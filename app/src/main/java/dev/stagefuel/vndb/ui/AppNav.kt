@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -69,7 +70,8 @@ fun AppNav(app: VndbApp, prefs: Prefs, startUrl: String?, onStartUrlUsed: () -> 
   val n = Nav(nav, openExternal)
   val skin = LocalSkin.current
   LaunchedEffect(startUrl) { startUrl?.let { n.open(it); onStartUrlUsed() } }
-  val current by nav.currentBackStackEntryAsState()
+  // The tab whose stack is showing, so it stays highlighted on its sub-pages and a second tap returns to its top.
+  var activeTab by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(Routes.SEARCH) }
   val updates = viewModel { UpdateVm(app.updater, app.settings) }
   LaunchedEffect(Unit) { if (VndbApp.checkUpdates) updates.check(manual = false) }
   UpdateDialog(updates)
@@ -79,14 +81,19 @@ fun AppNav(app: VndbApp, prefs: Prefs, startUrl: String?, onStartUrlUsed: () -> 
     bottomBar = {
       NavigationBar(containerColor = skin.blendBg) {
         tabs.forEach { t ->
-          val selected = current?.destination?.route == t.route
           NavigationBarItem(
-            selected = selected,
+            selected = activeTab == t.route,
             onClick = {
-              nav.navigate(t.route) {
-                popUpTo(nav.graph.findStartDestination().id) { saveState = true }
-                launchSingleTop = true
-                restoreState = true
+              if (activeTab == t.route) {
+                // Already in this tab: drop its sub-pages (the tab's own page stays, with its state).
+                if (!nav.popBackStack(t.route, inclusive = false)) nav.navigate(t.route) { launchSingleTop = true }
+              } else {
+                activeTab = t.route
+                nav.navigate(t.route) {
+                  popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+                  launchSingleTop = true
+                  restoreState = true
+                }
               }
             },
             icon = { Icon(t.icon, null) },

@@ -61,11 +61,19 @@ fun SettingsScreen(app: VndbApp, prefs: Prefs, nav: Nav, updates: dev.stagefuel.
       VndbBox {
         SectionHeader(acc.username)
         val u = "https://vndb.org/${acc.id}"
+        // The web view keeps its own vndb.org login (cookie), separate from the API token; it is lost on reinstall.
+        // Logged-out visits to your own notifications/edit pages get the site's "page does not exist".
+        val siteLogin = remember { siteLoggedIn() }
+        val own = { url: String -> if (siteLogin) nav.web(url) else nav.web("https://vndb.org/u/login") }
+        if (!siteLogin) Row {
+          Grey("Not logged in on vndb.org. ", style = VndbType.small)
+          LinkText("log in", style = VndbType.small) { nav.web("https://vndb.org/u/login") }
+        }
         @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
         androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
           LinkText("profile") { nav.web(u) }
-          LinkText("notifications") { nav.web("$u/notifies") }
-          LinkText("edit profile") { nav.web("$u/edit") }
+          LinkText("notifications") { own("$u/notifies") }
+          LinkText("edit profile") { own("$u/edit") }
           LinkText("reviews") { nav.web("https://vndb.org/w?u=${acc.id}") }
           LinkText("posts") { nav.web("$u/posts") }
           LinkText("history") { nav.web("$u/hist") }
@@ -216,3 +224,8 @@ private fun UserLookup(app: VndbApp, nav: Nav) {
     LinkText("view list", Modifier.padding(top = 6.dp)) { go() }
   }
 }
+
+/** True when the web view holds a vndb.org session cookie. */
+private fun siteLoggedIn(): Boolean = runCatching {
+  android.webkit.CookieManager.getInstance().getCookie("https://vndb.org").orEmpty().contains("vndb_auth=")
+}.getOrDefault(false)

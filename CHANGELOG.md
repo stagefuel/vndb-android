@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.2
+- Tapping the tab you're in (e.g. Me) goes back to its main page from any sub-page; the tab stays highlighted on its sub-pages.
+- Me shows when the in-app browser isn't logged in to vndb.org; notifications and edit profile then open the login page instead of "page does not exist".
+
 ## 0.3.1
 - VN pages show user stats: vote distribution, recent votes and a link to all votes.
 - Notifications, history and other site tables keep their columns and scroll sideways inside their box.
