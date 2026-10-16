@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.1
+- Character, release and other database pages (and VN pages) link to the entry's edit history and edit form on vndb.org.
+- The search start page sits just above the middle with top tabs too, search box included.
+- The keyboard no longer covers the search box (and other inputs) with bottom tabs.
+
 ## 0.4.0
 - Search finds releases, producers, characters, staff, tags and traits too (pick under the search box).
 - VN characters tab lists each character's voice actors.

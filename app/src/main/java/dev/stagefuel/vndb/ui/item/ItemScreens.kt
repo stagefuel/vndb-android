@@ -94,7 +94,14 @@ private fun Page(id: String, title: String, alt: String?, nav: Nav, bottomBar: (
     LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = 16.dp)) {
       item { Column(Modifier.padding(10.dp)) { BoxTitle(title, alt) } }
       body()
-      item { LinkText("open on vndb.org", Modifier.padding(12.dp)) { nav.web("https://vndb.org/$id") } }
+      item {
+        // No API for edits or revisions: these open the site's own pages in the app.
+        Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+          LinkText("history") { nav.web("https://vndb.org/$id/hist") }
+          LinkText("edit") { nav.web("https://vndb.org/$id/edit") }
+          LinkText("open on vndb.org") { nav.web("https://vndb.org/$id") }
+        }
+      }
     }
     bottomBar?.invoke()
   }

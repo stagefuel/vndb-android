@@ -154,15 +154,16 @@ fun SearchScreen(app: VndbApp, prefs: Prefs, nav: Nav) {
     }
   }
   val idle = !vm.searched && vm.empty && vm.error == null && !vm.loading
-  if (bottom && idle) {
-    // Start page with the search box at the bottom: title, stats and quote sit just above the middle.
+  if (idle) {
+    // Start page: the title, stats and quote (and, with top tabs, the search box) sit just above the middle.
     Column(Modifier.fillMaxSize()) {
       Spacer(Modifier.weight(0.4f))
       dev.stagefuel.vndb.ui.common.SiteTitle()
+      if (!bottom) { searchBar(); sortRow() }
       vm.stats?.let { StatsBox(it) }
       vm.quote?.let { q -> QuoteLine(q) { q.vn?.id?.takeIf(String::isNotEmpty)?.let(nav::vn) } }
       Spacer(Modifier.weight(0.6f))
-      Column(Modifier.padding(bottom = 6.dp)) { sortRow(); searchBar() }
+      if (bottom) Column(Modifier.padding(bottom = 6.dp)) { sortRow(); searchBar() }
     }
     return
   }

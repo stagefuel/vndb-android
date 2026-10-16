@@ -14,8 +14,8 @@ android {
     applicationId = "dev.stagefuel.vndb"
     minSdk = 29
     targetSdk = 36
-    versionCode = 10
-    versionName = "0.4.0"
+    versionCode = 11
+    versionName = "0.4.1"
   }
 
   signingConfigs {

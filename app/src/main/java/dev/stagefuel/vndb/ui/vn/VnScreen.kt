@@ -155,6 +155,7 @@ private fun LazyListScope.mainTab(
       Spacer(Modifier.height(8.dp))
       Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         if (signedIn) LinkText("edit list entry") { onEdit() }
+        LinkText("history") { nav.web("https://vndb.org/${v.id}/hist") }
         LinkText("open on vndb.org") { nav.web("https://vndb.org/${v.id}") }
       }
       if (!v.description.isNullOrBlank()) {

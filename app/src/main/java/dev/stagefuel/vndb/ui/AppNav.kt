@@ -13,6 +13,8 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.imePadding
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.stagefuel.vndb.ui.update.UpdateDialog
 import dev.stagefuel.vndb.ui.update.UpdateVm
@@ -121,7 +123,9 @@ fun AppNav(app: VndbApp, prefs: Prefs, startUrl: String?, onStartUrlUsed: () -> 
       }
     },
   ) { pad ->
-    Column(Modifier.fillMaxSize().padding(pad)) {
+    // Edge-to-edge: the window isn't resized for the keyboard, so make room for it here (minus the
+    // nav bar space Scaffold already reserves) — keeps bottom search boxes visible while typing.
+    Column(Modifier.fillMaxSize().padding(pad).consumeWindowInsets(pad).imePadding()) {
       NavHost(nav, startDestination = Routes.SEARCH) {
         composable(Routes.SEARCH) { SearchScreen(app, prefs, n) }
         composable(Routes.LIST) { MyListScreen(app, prefs, n) }
