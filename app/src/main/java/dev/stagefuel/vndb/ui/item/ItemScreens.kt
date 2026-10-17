@@ -57,6 +57,7 @@ import dev.stagefuel.vndb.ui.common.SectionHeader
 import dev.stagefuel.vndb.ui.common.VndbBox
 import dev.stagefuel.vndb.ui.common.VndbTabs
 import dev.stagefuel.vndb.ui.common.boxed
+import dev.stagefuel.vndb.ui.common.stripe
 import dev.stagefuel.vndb.ui.common.LocalTabsBottom
 import dev.stagefuel.vndb.ui.common.WarningBox
 import dev.stagefuel.vndb.ui.search.VnRow
@@ -136,7 +137,7 @@ private fun LazyListScope.description(text: String?, nav: Nav, prefs: Prefs) {
 private fun LazyListScope.vnList(vm: PagedVm<Vn>, prefs: Prefs, nav: Nav, empty: String) {
   itemsIndexed(vm.items, key = { _, v -> "vn-" + v.id }) { i, v ->
     if (i >= vm.items.size - 5) LaunchedEffect(vm.items.size) { vm.loadMore() }
-    Column(Modifier.padding(horizontal = 8.dp, vertical = 3.dp)) { VnRow(v, prefs) { nav.vn(v.id) } }
+    VnRow(v, prefs, i) { nav.vn(v.id) }
   }
   item {
     LaunchedEffect(Unit) { vm.loadMore() }
@@ -211,8 +212,8 @@ private fun CharacterPage(c: CharacterFull, basePrefs: Prefs, nav: Nav) {
     if (vns.isNotEmpty()) item {
       Column(Modifier.padding(horizontal = 8.dp)) {
         SectionHeader("Visual novels")
-        vns.forEach { v ->
-          Row(Modifier.padding(vertical = 2.dp)) {
+        vns.forEachIndexed { i, v ->
+          Row(Modifier.fillMaxWidth().stripe(i, skin).padding(vertical = 2.dp, horizontal = 4.dp)) {
             Grey((Names.charRoles[v.role] ?: v.role) + "  ", Modifier.width(130.dp))
             LinkText(v.title ?: v.id) { nav.vn(v.id) }
           }
@@ -259,8 +260,8 @@ private fun StaffPage(app: VndbApp, s: Staff, prefs: Prefs, nav: Nav) {
 
 private fun LazyListScope.creditsList(list: List<VnCredit>, nav: Nav) {
   if (list.isEmpty()) item { Grey("No credits.", Modifier.padding(12.dp), VndbType.body) }
-  items(list, key = { "cr-" + it.id }) { v ->
-    Row(Modifier.fillMaxWidth().clickable { nav.vn(v.id) }.padding(horizontal = 10.dp, vertical = 4.dp)) {
+  itemsIndexed(list, key = { _, it -> "cr-" + it.id }) { i, v ->
+    Row(Modifier.fillMaxWidth().stripe(i, LocalSkin.current).clickable { nav.vn(v.id) }.padding(horizontal = 10.dp, vertical = 4.dp)) {
       Grey(v.released ?: "TBA", Modifier.width(84.dp))
       Column(Modifier.weight(1f)) {
         Text(v.title, style = VndbType.body, color = LocalSkin.current.link)
@@ -273,8 +274,8 @@ private fun LazyListScope.creditsList(list: List<VnCredit>, nav: Nav) {
 private fun LazyListScope.voicedList(list: List<Character>, prefs: Prefs, nav: Nav) {
   val rows = list.flatMap { c -> c.vns.filter { it.spoiler <= prefs.spoilers }.distinctBy { it.id }.map { c to it } }
   if (rows.isEmpty()) item { Grey("No voiced characters.", Modifier.padding(12.dp), VndbType.body) }
-  items(rows, key = { (c, v) -> "va-${c.id}-${v.id}" }) { (c, v) ->
-    Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 3.dp)) {
+  itemsIndexed(rows, key = { _, (c, v) -> "va-${c.id}-${v.id}" }) { i, (c, v) ->
+    Row(Modifier.fillMaxWidth().stripe(i, LocalSkin.current).padding(horizontal = 10.dp, vertical = 3.dp)) {
       LinkText(c.name, Modifier.weight(1f)) { nav.item(c.id) }
       LinkText(v.title ?: v.id, Modifier.weight(1f)) { nav.vn(v.id) }
     }
@@ -342,7 +343,7 @@ private fun TraitPage(app: VndbApp, t: Trait, prefs: Prefs, nav: Nav) {
       item { SectionHeader("Characters", Modifier.padding(horizontal = 8.dp)) }
       itemsIndexed(chars.items, key = { _, c -> "ch-" + c.id }) { i, c ->
         if (i >= chars.items.size - 5) LaunchedEffect(chars.items.size) { chars.loadMore() }
-        Row(Modifier.fillMaxWidth().clickable { nav.item(c.id) }.padding(horizontal = 8.dp, vertical = 4.dp)) {
+        Row(Modifier.fillMaxWidth().stripe(i, LocalSkin.current).clickable { nav.item(c.id) }.padding(horizontal = 8.dp, vertical = 4.dp)) {
           GatedImage(c.image, prefs, Modifier.size(48.dp, 64.dp), contentScale = ContentScale.Crop)
           Spacer(Modifier.width(8.dp))
           Column {

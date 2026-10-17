@@ -63,6 +63,12 @@ data class Skin(
   /** Opaque box colour, for surfaces that can't show the page through them (sheets, dialogs). */
   val solidBox: Color get() = blendBg
 
+  /**
+   * Second shade for striped lists (the site's table.stripe): a faint tint of the text colour, so it reads as
+   * slightly lighter on dark skins and slightly darker on light ones, whatever the skin's palette.
+   */
+  val stripe: Color get() = mainText.copy(alpha = 0.07f)
+
   val isDark: Boolean get() = (0.299 * bodyBg.red + 0.587 * bodyBg.green + 0.114 * bodyBg.blue) < 0.5
 }
 

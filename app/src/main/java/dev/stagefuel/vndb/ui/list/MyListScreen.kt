@@ -48,6 +48,8 @@ import dev.stagefuel.vndb.ui.common.LinkText
 import dev.stagefuel.vndb.ui.common.Loading
 import dev.stagefuel.vndb.ui.common.VndbBox
 import dev.stagefuel.vndb.ui.common.WarningBox
+import dev.stagefuel.vndb.ui.common.stripe
+import dev.stagefuel.vndb.ui.common.boxed
 import dev.stagefuel.vndb.ui.common.formatVote
 import dev.stagefuel.vndb.ui.theme.LocalSkin
 import dev.stagefuel.vndb.ui.theme.VndbType
@@ -134,10 +136,13 @@ fun MyListScreen(app: VndbApp, prefs: Prefs, nav: Nav, uid: String? = null, name
     vm.error?.let { WarningBox(it, vm::refresh) }
     if (vm.loading && vm.entries.isEmpty()) Loading()
     if (!vm.loading && vm.error == null && vm.entries.isEmpty()) Grey("Nothing here.", Modifier.padding(12.dp), VndbType.body)
-    LazyColumn(Modifier.weight(1f).padding(horizontal = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-      itemsIndexed(vm.entries, key = { _, e -> e.id }) { i, e ->
-        if (i >= vm.entries.size - 5) LaunchedEffect(vm.entries.size) { vm.loadMore() }
-        EntryRow(e, prefs, onOpen = { nav.vn(e.id) }, onEdit = if (editable) ({ editing = e }) else null)
+    LazyColumn(Modifier.weight(1f)) {
+      // One box with striped rows, like the site's list table.
+      if (vm.entries.isNotEmpty()) boxed {
+        itemsIndexed(vm.entries, key = { _, e -> e.id }) { i, e ->
+          if (i >= vm.entries.size - 5) LaunchedEffect(vm.entries.size) { vm.loadMore() }
+          EntryRow(e, prefs, i, onOpen = { nav.vn(e.id) }, onEdit = if (editable) ({ editing = e }) else null)
+        }
       }
       if (vm.loading && vm.entries.isNotEmpty()) item { Loading() }
     }
@@ -149,10 +154,10 @@ fun MyListScreen(app: VndbApp, prefs: Prefs, nav: Nav, uid: String? = null, name
 }
 
 @Composable
-private fun EntryRow(e: UlistEntry, prefs: Prefs, onOpen: () -> Unit, onEdit: (() -> Unit)?) {
+private fun EntryRow(e: UlistEntry, prefs: Prefs, index: Int, onOpen: () -> Unit, onEdit: (() -> Unit)?) {
   val skin = LocalSkin.current
   val vn = e.vn
-  VndbBox(Modifier.clickable(onClick = onOpen), padding = 4) {
+  Column(Modifier.fillMaxWidth().stripe(index, skin).clickable(onClick = onOpen).padding(4.dp)) {
     Row {
       GatedImage(
         vn?.image?.let { Image(url = it.url, sexual = it.sexual, violence = it.violence) }, prefs,

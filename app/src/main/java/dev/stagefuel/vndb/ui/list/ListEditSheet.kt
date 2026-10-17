@@ -49,6 +49,7 @@ import dev.stagefuel.vndb.ui.common.Loading
 import dev.stagefuel.vndb.ui.common.Names
 import dev.stagefuel.vndb.ui.common.SectionHeader
 import dev.stagefuel.vndb.ui.common.WarningBox
+import dev.stagefuel.vndb.ui.common.stripe
 import dev.stagefuel.vndb.ui.common.formatVote
 import dev.stagefuel.vndb.ui.theme.LocalSkin
 import dev.stagefuel.vndb.ui.theme.VndbType
@@ -169,7 +170,7 @@ fun ListEditSheet(app: VndbApp, vnId: String, title: String, onDismiss: () -> Un
 
       if (vm.releases.isNotEmpty()) {
         SectionHeader("Releases")
-        vm.releases.forEach { r -> ReleaseStatusRow(r, vm.releaseStatus[r.id]) { vm.setRelease(r.id, it) } }
+        vm.releases.forEachIndexed { i, r -> ReleaseStatusRow(r, vm.releaseStatus[r.id], i) { vm.setRelease(r.id, it) } }
       }
 
       Spacer(Modifier.height(16.dp))
@@ -205,10 +206,10 @@ private fun Field(label: String, value: String, type: KeyboardType, placeholder:
 }
 
 @Composable
-private fun ReleaseStatusRow(r: Release, status: Int?, onSet: (Int?) -> Unit) {
+private fun ReleaseStatusRow(r: Release, status: Int?, index: Int, onSet: (Int?) -> Unit) {
   val skin = LocalSkin.current
   var open by remember { mutableStateOf(false) }
-  Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+  Row(Modifier.fillMaxWidth().stripe(index, skin).padding(vertical = 3.dp, horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
     Column(Modifier.weight(1f)) {
       Text(r.title, style = VndbType.body, color = skin.mainText)
       Grey(listOfNotNull(r.released, r.languages.joinToString(", ") { Names.lang(it.lang) }).joinToString(" · "))

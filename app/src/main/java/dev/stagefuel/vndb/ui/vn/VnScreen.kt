@@ -55,6 +55,7 @@ import dev.stagefuel.vndb.ui.common.Names
 import dev.stagefuel.vndb.ui.common.SectionHeader
 import dev.stagefuel.vndb.ui.common.VndbBox
 import dev.stagefuel.vndb.ui.common.boxed
+import dev.stagefuel.vndb.ui.common.stripe
 import dev.stagefuel.vndb.ui.common.SpoilerSwitch
 import dev.stagefuel.vndb.ui.common.ImageViewer
 import dev.stagefuel.vndb.ui.common.ViewerImage
@@ -191,8 +192,8 @@ private fun LazyListScope.mainTab(
       SectionHeader("Relations")
       v.relations.groupBy { it.relation }.toSortedMap(compareBy<String> { Names.relationOrder.indexOf(it).let { i -> if (i < 0) 99 else i } }.thenBy { it }).forEach { (rel, list) ->
         Text(Names.relations[rel] ?: rel, style = VndbType.body, color = LocalSkin.current.mainText, modifier = Modifier.padding(top = 4.dp))
-        list.forEach { r ->
-          Row(Modifier.padding(start = 12.dp)) {
+        list.forEachIndexed { i, r ->
+          Row(Modifier.fillMaxWidth().stripe(i, LocalSkin.current).padding(start = 12.dp, top = 1.dp, bottom = 1.dp)) {
             if (!r.official) Grey("[unofficial] ")
             LinkText(r.title) { nav.vn(r.id) }
           }
@@ -299,17 +300,17 @@ private fun LazyListScope.releasesTab(st: Load<List<Release>>, nav: Nav, retry: 
               .border(1.dp, skin.border).background(skin.blendBg).padding(horizontal = 10.dp, vertical = 6.dp),
           )
         }
-        items(rels, key = { "$lang-${it.id}" }) { r -> ReleaseRow(r, lang, nav) }
+        itemsIndexed(rels, key = { _, it -> "$lang-${it.id}" }) { i, r -> ReleaseRow(r, lang, nav, i) }
       }
     }
   }
 }
 
 @Composable
-private fun ReleaseRow(r: Release, lang: String, nav: Nav) {
+private fun ReleaseRow(r: Release, lang: String, nav: Nav, index: Int) {
   val skin = LocalSkin.current
   val mtl = r.languages.firstOrNull { it.lang == lang }?.mtl == true
-  Row(Modifier.fillMaxWidth().clickable { nav.item(r.id) }.padding(horizontal = 10.dp, vertical = 4.dp)) {
+  Row(Modifier.fillMaxWidth().stripe(index, skin).clickable { nav.item(r.id) }.padding(horizontal = 10.dp, vertical = 4.dp)) {
     Grey(r.released ?: "TBA", Modifier.width(84.dp), VndbType.small)
     Grey(r.minage?.let { "$it+" } ?: "", Modifier.width(30.dp), VndbType.small)
     Column(Modifier.weight(1f)) {
@@ -341,8 +342,8 @@ private fun LazyListScope.charactersTab(vnId: String, va: List<dev.stagefuel.vnd
         val list = entries.filter { it.second.role == role }
         if (list.isNotEmpty()) {
           item(key = "role-$role") { SectionHeader(Names.charRoles[role] ?: role, Modifier.padding(horizontal = 8.dp)) }
-          items(list, key = { it.first.id }) { (c, _) ->
-            Row(Modifier.fillMaxWidth().clickable { nav.item(c.id) }.padding(horizontal = 8.dp, vertical = 4.dp)) {
+          itemsIndexed(list, key = { _, it -> it.first.id }) { i, (c, _) ->
+            Row(Modifier.fillMaxWidth().stripe(i, LocalSkin.current).clickable { nav.item(c.id) }.padding(horizontal = 8.dp, vertical = 4.dp)) {
               GatedImage(c.image, prefs, Modifier.size(56.dp, 72.dp), contentScale = ContentScale.Crop)
               Spacer(Modifier.width(8.dp))
               Column {
@@ -390,8 +391,8 @@ private fun LazyListScope.staffRoles(staff: List<dev.stagefuel.vndb.api.VnStaff>
     item(key = "staff-$keyPrefix-$role") {
       Column(Modifier.padding(horizontal = 8.dp)) {
         SectionHeader(Names.staffRoles[role] ?: role)
-        list.forEach { s ->
-          Row(Modifier.padding(vertical = 2.dp)) {
+        list.forEachIndexed { i, s ->
+          Row(Modifier.fillMaxWidth().stripe(i, LocalSkin.current).padding(vertical = 2.dp, horizontal = 4.dp)) {
             LinkText(s.name) { nav.item(s.id) }
             s.note?.takeIf { it.isNotBlank() }?.let { Grey("  $it") }
           }
@@ -462,8 +463,8 @@ private fun LazyListScope.vnQuotes(quotes: List<dev.stagefuel.vndb.api.Quote>, n
   item(key = "quotes") {
     Column(Modifier.padding(horizontal = 8.dp)) {
       SectionHeader("Quotes")
-      quotes.forEach { q ->
-        Column(Modifier.padding(vertical = 3.dp)) {
+      quotes.forEachIndexed { i, q ->
+        Column(Modifier.fillMaxWidth().stripe(i, LocalSkin.current).padding(vertical = 3.dp, horizontal = 4.dp)) {
           Text("\u201C${q.quote}\u201D", style = VndbType.body, color = LocalSkin.current.mainText)
           q.character?.takeIf { it.id.isNotEmpty() }?.let { c -> Row { Grey("\u2014 "); LinkText(c.name ?: c.id, style = VndbType.small) { nav.item(c.id) } } }
         }

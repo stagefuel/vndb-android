@@ -120,7 +120,7 @@ fun VndbTabs(tabs: List<String>, selected: Int, small: Boolean = false, onSelect
 fun InfoRow(key: String, odd: Boolean, keyWidth: Int = 96, value: @Composable () -> Unit) {
   val s = LocalSkin.current
   Row(
-    Modifier.fillMaxWidth().background(if (odd) s.boxBg else androidx.compose.ui.graphics.Color.Transparent).padding(vertical = 3.dp, horizontal = 4.dp),
+    Modifier.fillMaxWidth().background(if (odd) s.stripe else androidx.compose.ui.graphics.Color.Transparent).padding(vertical = 3.dp, horizontal = 4.dp),
   ) {
     Text(key, style = VndbType.body, color = s.mainText, modifier = Modifier.width(keyWidth.dp))
     Box(Modifier.weight(1f)) { value() }
@@ -177,3 +177,7 @@ fun SpoilerSwitch(level: Int, modifier: Modifier = Modifier, onChange: (Int) -> 
     }
   }
 }
+
+/** Alternating row shade for list item [index] (first row shaded, like the site's striped tables). */
+fun Modifier.stripe(index: Int, skin: dev.stagefuel.vndb.ui.theme.Skin): Modifier =
+  if (index % 2 == 0) background(skin.stripe) else this

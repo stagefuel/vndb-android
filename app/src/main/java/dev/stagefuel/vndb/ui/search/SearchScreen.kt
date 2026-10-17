@@ -47,6 +47,8 @@ import dev.stagefuel.vndb.ui.common.Grey
 import dev.stagefuel.vndb.ui.common.LinkText
 import dev.stagefuel.vndb.ui.common.Loading
 import dev.stagefuel.vndb.ui.common.VndbBox
+import dev.stagefuel.vndb.ui.common.stripe
+import dev.stagefuel.vndb.ui.common.boxed
 import dev.stagefuel.vndb.ui.common.WarningBox
 import dev.stagefuel.vndb.ui.common.formatRating
 import dev.stagefuel.vndb.ui.theme.LocalSkin
@@ -213,7 +215,7 @@ fun SearchScreen(app: VndbApp, prefs: Prefs, nav: Nav) {
             if (!bottom) { searchBar(); sortRow() }
             vm.stats?.let { StatsBox(it) }
             vm.quote?.let { q -> QuoteLine(q) { q.vn?.id?.takeIf(String::isNotEmpty)?.let(nav::vn) } }
-            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.Center) {
+            Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.Center) {
               LinkText("random visual novel", style = VndbType.small) { vm.randomVn(nav::vn) }
             }
             vm.randomError?.let { Grey(it, Modifier.fillMaxWidth().padding(horizontal = 12.dp)) }
@@ -239,14 +241,16 @@ fun SearchScreen(app: VndbApp, prefs: Prefs, nav: Nav) {
       vm.loading && vm.empty -> Loading()
       vm.searched && vm.empty -> Grey("No results.", Modifier.padding(12.dp), VndbType.body)
     }
-    LazyColumn(Modifier.weight(1f).padding(horizontal = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-      itemsIndexed(vm.results, key = { _, v -> v.id }) { i, v ->
-        if (i >= vm.results.size - 5) LaunchedEffect(vm.results.size) { vm.loadMore() }
-        VnRow(v, prefs) { nav.vn(v.id) }
-      }
-      itemsIndexed(vm.hits, key = { _, h -> dev.stagefuel.vndb.data.SearchTypes.id(h) }) { i, h ->
-        if (i >= vm.hits.size - 5) LaunchedEffect(vm.hits.size) { vm.loadMore() }
-        HitRow(h, vm.type) { nav.item(dev.stagefuel.vndb.data.SearchTypes.id(h)) }
+    LazyColumn(Modifier.weight(1f)) {
+      if (!vm.empty) boxed {
+        itemsIndexed(vm.results, key = { _, v -> v.id }) { i, v ->
+          if (i >= vm.results.size - 5) LaunchedEffect(vm.results.size) { vm.loadMore() }
+          VnRow(v, prefs, i) { nav.vn(v.id) }
+        }
+        itemsIndexed(vm.hits, key = { _, h -> dev.stagefuel.vndb.data.SearchTypes.id(h) }) { i, h ->
+          if (i >= vm.hits.size - 5) LaunchedEffect(vm.hits.size) { vm.loadMore() }
+          HitRow(h, vm.type, i) { nav.item(dev.stagefuel.vndb.data.SearchTypes.id(h)) }
+        }
       }
       if (vm.loading && !vm.empty) item { Loading() }
       if (vm.more && !vm.loading) item { LinkText("next ›", Modifier.padding(12.dp)) { vm.loadMore() } }
@@ -256,9 +260,10 @@ fun SearchScreen(app: VndbApp, prefs: Prefs, nav: Nav) {
 }
 
 @Composable
-fun VnRow(v: Vn, prefs: Prefs, onClick: () -> Unit) {
+fun VnRow(v: Vn, prefs: Prefs, index: Int, onClick: () -> Unit) {
   val skin = LocalSkin.current
-  VndbBox(Modifier.clickable(onClick = onClick), padding = 4) {
+  // A striped row (like the site's browse tables); callers put the rows inside one box.
+  Column(Modifier.fillMaxWidth().stripe(index, skin).clickable(onClick = onClick).padding(4.dp)) {
     Row(verticalAlignment = Alignment.Top) {
       GatedImage(v.image, prefs, Modifier.size(64.dp, 86.dp), thumb = true, contentScale = ContentScale.Crop)
       Spacer(Modifier.width(8.dp))
@@ -276,13 +281,19 @@ fun VnRow(v: Vn, prefs: Prefs, onClick: () -> Unit) {
 @Composable
 private fun StatsBox(s: dev.stagefuel.vndb.api.Stats) {
   val skin = LocalSkin.current
-  VndbBox(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-    Text("Database Statistics", style = VndbType.boxH1, color = skin.boxTitle, modifier = Modifier.padding(bottom = 4.dp))
+  // Two columns so the whole start page fits on one screen.
+  VndbBox(Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
+    Text("Database Statistics", style = VndbType.boxH1, color = skin.boxTitle, modifier = Modifier.padding(bottom = 2.dp))
     listOf("Visual Novels" to s.vn, "Releases" to s.releases, "Producers" to s.producers, "Characters" to s.chars,
-      "Staff" to s.staff, "Tags" to s.tags, "Traits" to s.traits).forEach { (k, v) ->
+      "Staff" to s.staff, "Tags" to s.tags, "Traits" to s.traits).chunked(2).forEach { pair ->
       Row(Modifier.fillMaxWidth()) {
-        Text(k, style = VndbType.body.copy(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic), color = skin.mainText, modifier = Modifier.weight(0.6f))
-        Text("%,d".format(v), style = VndbType.body, color = skin.mainText, modifier = Modifier.weight(0.4f), textAlign = androidx.compose.ui.text.style.TextAlign.End)
+        pair.forEachIndexed { i, (k, v) ->
+          Row(Modifier.weight(1f).padding(start = if (i == 1) 12.dp else 0.dp)) {
+            Text(k, style = VndbType.small.copy(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic), color = skin.mainText, modifier = Modifier.weight(1f))
+            Text("%,d".format(v), style = VndbType.small, color = skin.mainText)
+          }
+        }
+        if (pair.size == 1) Spacer(Modifier.weight(1f).padding(start = 12.dp))
       }
     }
   }
@@ -292,7 +303,7 @@ private fun StatsBox(s: dev.stagefuel.vndb.api.Stats) {
 @Composable
 private fun QuoteLine(q: dev.stagefuel.vndb.api.Quote, onClick: () -> Unit) {
   val skin = LocalSkin.current
-  Column(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 6.dp)) {
+  Column(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 2.dp)) {
     Text("\u201C${q.quote}\u201D", style = VndbType.small, color = skin.link, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.fillMaxWidth())
     val by = listOfNotNull(q.character?.name, q.vn?.title).joinToString(", ")
     if (by.isNotEmpty()) Text("\u2014 $by", style = VndbType.small, color = skin.grayedOut,
@@ -302,10 +313,10 @@ private fun QuoteLine(q: dev.stagefuel.vndb.api.Quote, onClick: () -> Unit) {
 
 /** One search hit for releases/producers/characters/staff/tags/traits: name, original name, a grey summary. */
 @Composable
-private fun HitRow(h: kotlinx.serialization.json.JsonObject, type: String, onClick: () -> Unit) {
+private fun HitRow(h: kotlinx.serialization.json.JsonObject, type: String, index: Int, onClick: () -> Unit) {
   val skin = LocalSkin.current
   val t = dev.stagefuel.vndb.data.SearchTypes
-  VndbBox(Modifier.clickable(onClick = onClick), padding = 6) {
+  Column(Modifier.fillMaxWidth().stripe(index, skin).clickable(onClick = onClick).padding(6.dp)) {
     Text(t.title(h), style = VndbType.body, color = skin.link, maxLines = 2, overflow = TextOverflow.Ellipsis)
     t.original(h)?.takeIf { it != t.title(h) }?.let { Grey(it, style = VndbType.small) }
     t.byKey[type]?.sub?.invoke(h)?.takeIf { it.isNotBlank() }?.let { Grey(it) }

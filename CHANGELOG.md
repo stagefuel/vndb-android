@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.2
+- The start page fits on one screen: statistics in two columns, smaller release covers with one-line titles, tighter spacing.
+- Lists use the site's alternating row shades: releases, characters, staff, relations, quotes, credits, voiced characters, trait characters, search results, your list, the release lists and the edit sheet's releases. Search results, your list and release lists are one box with striped rows instead of separate boxes.
+- The second shade is derived from each skin's text colour, so it shows on dark and light skins alike (info tables too).
+
 ## 0.5.1 (audit fixes)
 - Fixed a crash when tapping a link no app can open (e.g. the contact mail link in the site footer); intent:/javascript: links are ignored.
 - vndb.org links to characters, releases, producers, staff, tags and traits (and www.vndb.org links) can open in the app, not only VN and forum links.

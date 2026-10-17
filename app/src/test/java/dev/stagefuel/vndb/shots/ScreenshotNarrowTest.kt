@@ -42,6 +42,15 @@ class ScreenshotNarrowTest {
         override fun dispatch(request: RecordedRequest): MockResponse {
           val body = request.body.readUtf8()
           if (request.path == "/site/v17") return MockResponse().setBody(ScreenshotNarrowTest::class.java.getResource("/site/v17_stats.html")!!.readText())
+          // Start page: statistics, the random quote and the release feeds (real API data saved as fixtures).
+          val path = request.path!!
+          val extra = when {
+            path.endsWith("/stats") -> "stats.json"
+            path.endsWith("/quote") -> "quote.json"
+            path.endsWith("/release") && body.contains("\"official\"") -> "feed.json"
+            else -> null
+          }
+          if (extra != null) return MockResponse().setBody(ScreenshotNarrowTest::class.java.getResource("/kana/$extra")!!.readText())
           val file = when {
             request.path!!.endsWith("/vn") -> "live_vn_v17.json"
             request.path!!.endsWith("/release") -> "live_release_v17.json"

@@ -44,6 +44,8 @@ import dev.stagefuel.vndb.ui.common.Loading
 import dev.stagefuel.vndb.ui.common.Names
 import dev.stagefuel.vndb.ui.common.VndbBox
 import dev.stagefuel.vndb.ui.common.WarningBox
+import dev.stagefuel.vndb.ui.common.stripe
+import dev.stagefuel.vndb.ui.common.boxed
 import dev.stagefuel.vndb.ui.theme.LocalSkin
 import dev.stagefuel.vndb.ui.theme.VndbType
 import kotlinx.coroutines.Job
@@ -94,17 +96,20 @@ class FeedVm(private val repo: VndbRepository, private val upcoming: Boolean, re
 fun FeedRow(kind: String, items: List<FeedItem>, prefs: Prefs, nav: Nav) {
   if (items.isEmpty()) return
   val skin = LocalSkin.current
-  Column(Modifier.fillMaxWidth().padding(top = 8.dp)) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
-      Text(feedTitle(kind), style = VndbType.boxH1, color = skin.boxTitle, modifier = Modifier.weight(1f))
-      LinkText("more ›") { nav.feed(kind) }
+  // Compact (72×100 covers, one-line titles) so both rows fit on the start page without scrolling.
+  Column(Modifier.fillMaxWidth().padding(top = 4.dp)) {
+    Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+      Text(feedTitle(kind), style = VndbType.boxH1.copy(fontSize = androidx.compose.ui.unit.TextUnit(15f, androidx.compose.ui.unit.TextUnitType.Sp)),
+        color = skin.boxTitle, modifier = Modifier.weight(1f))
+      LinkText("more ›", style = VndbType.small) { nav.feed(kind) }
     }
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)) {
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)) {
       items(items, key = { it.vn.id }) { it ->
-        Column(Modifier.width(96.dp).clickable { nav.vn(it.vn.id) }) {
-          GatedImage(it.vn.image, prefs, Modifier.size(96.dp, 130.dp), thumb = true, contentScale = ContentScale.Crop)
-          Text(it.vn.title, style = VndbType.small, color = skin.link, maxLines = 2, overflow = TextOverflow.Ellipsis)
-          Grey(it.release.released.orEmpty())
+        Column(Modifier.width(72.dp).clickable { nav.vn(it.vn.id) }) {
+          GatedImage(it.vn.image, prefs, Modifier.size(72.dp, 100.dp), thumb = true, contentScale = ContentScale.Crop)
+          Text(it.vn.title, style = VndbType.small, color = skin.link, maxLines = 1, overflow = TextOverflow.Ellipsis)
+          Text(it.release.released.orEmpty(), style = VndbType.small.copy(fontSize = androidx.compose.ui.unit.TextUnit(11f, androidx.compose.ui.unit.TextUnitType.Sp)),
+            color = skin.grayedOut, maxLines = 1)
         }
       }
     }
@@ -122,11 +127,11 @@ fun FeedScreen(app: VndbApp, prefs: Prefs, nav: Nav, kind: String) {
     Row(Modifier.padding(horizontal = 12.dp)) {
       LinkText("filters" + if (vm.filter.isEmpty) "" else " (${vm.filter.count})", style = VndbType.small) { filtering = true }
     }
-    LazyColumn(Modifier.weight(1f).padding(horizontal = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp),
-      contentPadding = PaddingValues(vertical = 6.dp)) {
+    LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(vertical = 6.dp)) {
+      if (vm.items.isNotEmpty()) boxed {
       itemsIndexed(vm.items, key = { _, it -> it.vn.id }) { i, it ->
         if (i >= vm.items.size - 5) LaunchedEffect(vm.items.size) { vm.loadMore() }
-        VndbBox(Modifier.clickable { nav.vn(it.vn.id) }, padding = 4) {
+        Column(Modifier.fillMaxWidth().stripe(i, skin).clickable { nav.vn(it.vn.id) }.padding(4.dp)) {
           Row {
             GatedImage(it.vn.image, prefs, Modifier.size(48.dp, 64.dp), thumb = true, contentScale = ContentScale.Crop)
             Spacer(Modifier.width(8.dp))
@@ -142,6 +147,7 @@ fun FeedScreen(app: VndbApp, prefs: Prefs, nav: Nav, kind: String) {
             }
           }
         }
+      }
       }
       item {
         when {
