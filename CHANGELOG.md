@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.1 (audit fixes)
+- Fixed a crash when tapping a link no app can open (e.g. the contact mail link in the site footer); intent:/javascript: links are ignored.
+- vndb.org links to characters, releases, producers, staff, tags and traits (and www.vndb.org links) can open in the app, not only VN and forum links.
+- The start page retries its statistics, quote and release rows when you come back to it after a failed (offline) load.
+
 ## 0.5.0
 - Start page: "Upcoming releases" and "Just released" rows (one cover per VN, editions grouped), each with a full list ("more ›") that has language and platform filters.
 - "random visual novel" link on the start page.

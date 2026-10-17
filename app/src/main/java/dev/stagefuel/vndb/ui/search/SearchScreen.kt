@@ -70,12 +70,21 @@ class SearchVm(private val repo: VndbRepository) : ViewModel() {
   var recent by mutableStateOf<List<dev.stagefuel.vndb.ui.feed.FeedItem>>(emptyList()); private set
   var randomError by mutableStateOf<String?>(null); private set
 
-  init {
-    viewModelScope.launch { runCatching { stats = repo.stats() } }
-    viewModelScope.launch { runCatching { quote = repo.randomQuote() } }
+  // Declared before init: init runs in source order, and loadStart() reads it.
+  private var startJobs = emptyList<Job>()
+
+  init { loadStart() }
+
+  /** Start-page sections; called again whenever the start page shows, so a failed load (offline) gets retried. */
+  fun loadStart() {
+    if (startJobs.any { it.isActive }) return
     val none = dev.stagefuel.vndb.data.SearchFilter()
-    viewModelScope.launch { runCatching { upcoming = dev.stagefuel.vndb.ui.feed.group(repo.releaseFeed(true, none, 1, 40).results).take(15) } }
-    viewModelScope.launch { runCatching { recent = dev.stagefuel.vndb.ui.feed.group(repo.releaseFeed(false, none, 1, 40).results).take(15) } }
+    startJobs = listOfNotNull(
+      if (stats == null) viewModelScope.launch { runCatching { stats = repo.stats() } } else null,
+      if (quote == null) viewModelScope.launch { runCatching { quote = repo.randomQuote() } } else null,
+      if (upcoming.isEmpty()) viewModelScope.launch { runCatching { upcoming = dev.stagefuel.vndb.ui.feed.group(repo.releaseFeed(true, none, 1, 40).results).take(15) } } else null,
+      if (recent.isEmpty()) viewModelScope.launch { runCatching { recent = dev.stagefuel.vndb.ui.feed.group(repo.releaseFeed(false, none, 1, 40).results).take(15) } } else null,
+    )
   }
 
   fun randomVn(open: (String) -> Unit) = viewModelScope.launch {
@@ -188,6 +197,7 @@ fun SearchScreen(app: VndbApp, prefs: Prefs, nav: Nav) {
   }
   val idle = !vm.searched && vm.empty && vm.error == null && !vm.loading
   if (idle) {
+    LaunchedEffect(Unit) { vm.loadStart() }
     // Start page: the block sits just above the middle while it fits on screen, and scrolls once the release
     // rows make it taller (40% of the spare height above it).
     Column(Modifier.fillMaxSize()) {

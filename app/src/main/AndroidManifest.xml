@@ -30,8 +30,16 @@
         <category android:name="android.intent.category.BROWSABLE" />
         <data android:scheme="https" />
         <data android:host="vndb.org" />
+        <data android:host="www.vndb.org" />
+        <!-- VNs, threads, and the DB pages with native screens (c, r, p, s, g, i). -->
         <data android:pathPattern="/v.*" />
         <data android:pathPattern="/t.*" />
+        <data android:pathPattern="/c.*" />
+        <data android:pathPattern="/r.*" />
+        <data android:pathPattern="/p.*" />
+        <data android:pathPattern="/s.*" />
+        <data android:pathPattern="/g.*" />
+        <data android:pathPattern="/i.*" />
       </intent-filter>
     </activity>
     <receiver android:name=".data.InstallResult" android:exported="false" />

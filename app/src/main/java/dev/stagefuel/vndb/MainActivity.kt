@@ -39,7 +39,22 @@ class MainActivity : ComponentActivity() {
     deepLink.value = intent.data?.toString()
   }
 
+  /**
+   * Off-site links: web pages in a custom tab, mailto:/tel:/market: etc. via whatever app handles them.
+   * Never crashes when nothing can open the link; intent:, javascript:, file: and content: are ignored.
+   */
   private fun openExternal(url: String) {
-    CustomTabsIntent.Builder().build().launchUrl(this, Uri.parse(url))
+    val uri = Uri.parse(url)
+    val scheme = uri.scheme?.lowercase()
+    try {
+      when (scheme) {
+        "http", "https" -> CustomTabsIntent.Builder().build().launchUrl(this, uri)
+        null, "intent", "javascript", "file", "content", "data" -> Unit
+        else -> startActivity(Intent(Intent.ACTION_VIEW, uri))
+      }
+    } catch (e: android.content.ActivityNotFoundException) {
+      if (scheme == "http" || scheme == "https") runCatching { startActivity(Intent(Intent.ACTION_VIEW, uri)) }
+      else android.widget.Toast.makeText(this, "No app can open this link", android.widget.Toast.LENGTH_SHORT).show()
+    }
   }
 }
